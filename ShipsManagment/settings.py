@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ShipOps.apps.ShipopsConfig',
-    'ShipsAuth.apps.ShipsauthConfig'
+    'ShipsAuth.apps.ShipsauthConfig',
 ]
 
 MIDDLEWARE = [

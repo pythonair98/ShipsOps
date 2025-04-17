@@ -1,14 +1,28 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Dashboard{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
   <!-- Page Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="h3 mb-0 text-gray-800">Dashboard</h2>
     <div>
-      <span class="text-gray-600">Today: {{ today|date:"F d, Y" }}</span>
+      <h2 class="h3 mb-0 text-gray-800">Dashboard Overview</h2>
+      <p class="text-muted small mt-1">Summary of your shipping operations</p>
+    </div>
+    <div class="d-flex align-items-center">
+      <div class="input-group me-3" style="width: 250px;">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="fas fa-calendar-alt text-primary"></i>
+        </span>
+        <input type="text" class="form-control border-start-0" id="date-range-picker" placeholder="Date Range" readonly>
+      </div>
+      <span class="text-gray-600 fw-medium">Today: {{ today|date:"F d, Y" }}</span>
     </div>
   </div>
 
@@ -22,9 +36,13 @@
             <div class="col">
               <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Contracts</div>
               <div class="h5 mb-0 fw-bold text-gray-800">{{ all_contracts }}</div>
+              <div class="text-xs text-success mt-2">
+                <i class="fas fa-arrow-up me-1"></i>
+                <span id="contract-change">4.8%</span> from last month
+              </div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-file-contract fa-2x text-gray-300"></i>
+              <i class="fas fa-file-contract fa-2x text-primary opacity-25"></i>
             </div>
           </div>
         </div>
@@ -39,9 +57,13 @@
             <div class="col">
               <div class="text-xs fw-bold text-success text-uppercase mb-1">Total Invoices</div>
               <div class="h5 mb-0 fw-bold text-gray-800">{{ all_invoices }}</div>
+              <div class="text-xs text-success mt-2">
+                <i class="fas fa-arrow-up me-1"></i>
+                <span id="invoice-change">3.2%</span> from last month
+              </div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-file-invoice-dollar fa-2x text-gray-300"></i>
+              <i class="fas fa-file-invoice-dollar fa-2x text-success opacity-25"></i>
             </div>
           </div>
         </div>
@@ -54,11 +76,15 @@
         <div class="card-body">
           <div class="row align-items-center">
             <div class="col">
-              <div class="text-xs fw-bold text-info text-uppercase mb-1">Total USD</div>
+              <div class="text-xs fw-bold text-info text-uppercase mb-1">Total Revenue (USD)</div>
               <div class="h5 mb-0 fw-bold text-gray-800">${{ total_usd|floatformat:2 }}</div>
+              <div class="text-xs text-success mt-2">
+                <i class="fas fa-arrow-up me-1"></i>
+                <span id="usd-change">8.3%</span> from last month
+              </div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+              <i class="fas fa-dollar-sign fa-2x text-info opacity-25"></i>
             </div>
           </div>
         </div>
@@ -71,11 +97,80 @@
         <div class="card-body">
           <div class="row align-items-center">
             <div class="col">
-              <div class="text-xs fw-bold text-warning text-uppercase mb-1">Total AED</div>
+              <div class="text-xs fw-bold text-warning text-uppercase mb-1">Total Revenue (AED)</div>
               <div class="h5 mb-0 fw-bold text-gray-800">{{ total_aed|floatformat:2 }} AED</div>
+              <div class="text-xs text-success mt-2">
+                <i class="fas fa-arrow-up me-1"></i>
+                <span id="aed-change">7.5%</span> from last month
+              </div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-coins fa-2x text-gray-300"></i>
+              <i class="fas fa-coins fa-2x text-warning opacity-25"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Performance Row -->
+  <div class="row g-4 mb-4">
+    <div class="col-xl-8">
+      <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 fw-bold text-primary">Revenue Trends (Last 6 Months)</h6>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-filter me-1"></i> Filter
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+              <li><a class="dropdown-item" href="#">Last 6 Months</a></li>
+              <li><a class="dropdown-item" href="#">Last Year</a></li>
+              <li><a class="dropdown-item" href="#">Custom Range</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-area">
+            <canvas id="revenueChart" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-xl-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 fw-bold text-primary">Invoice Status</h6>
+        </div>
+        <div class="card-body">
+          <div class="row align-items-center mb-4">
+            <div class="col-auto">
+              <div class="rounded-circle bg-success d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                <h3 class="text-white m-0">75%</h3>
+              </div>
+            </div>
+            <div class="col">
+              <h6 class="mb-1">Payment Rate</h6>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-success" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <p class="text-muted small mt-2 mb-0">75% of invoices paid on time</p>
+            </div>
+          </div>
+          
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <div class="rounded-circle bg-danger d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                <h3 class="text-white m-0">12%</h3>
+              </div>
+            </div>
+            <div class="col">
+              <h6 class="mb-1">Overdue Rate</h6>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-danger" role="progressbar" style="width: 12%" aria-valuenow="12" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <p class="text-muted small mt-2 mb-0">12% of invoices are currently overdue</p>
             </div>
           </div>
         </div>
@@ -84,7 +179,7 @@
   </div>
 
   <!-- Contract Status & Charts Row -->
-  <div class="row g-4">
+  <div class="row g-4 mb-4">
     <!-- Contract Status -->
     <div class="col-xl-4 col-lg-5">
       <div class="card shadow mb-4">
@@ -122,6 +217,10 @@
 
           <div class="mt-4 pt-3 border-top">
             <h6 class="fw-bold text-primary">Contract Distribution</h6>
+            <!-- Debug info to check values -->
+            <div class="small text-muted mb-2">
+              Pending: {{ pending_contracts }}, Finance: {{ finance_contracts }}, Billed: {{ billed_contracts }}
+            </div>
             <div class="chart-pie mt-3">
               <canvas id="contractStatusChart" height="200"></canvas>
             </div>
@@ -146,6 +245,7 @@
                   <th scope="col">Vessel</th>
                   <th scope="col">Charterer</th>
                   <th scope="col">Status</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -165,10 +265,15 @@
                     <span class="badge bg-secondary">Unknown</span>
                     {% endif %}
                   </td>
+                  <td>
+                    <a href="{% url 'contract_detail' contract.id %}" class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-eye"></i>
+                    </a>
+                  </td>
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="4" class="text-center py-4">No contracts found</td>
+                  <td colspan="5" class="text-center py-4">No contracts found</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -179,36 +284,41 @@
     </div>
   </div>
 
-  <!-- Monthly Data & Actions Row -->
-  <div class="row g-4">
-    <!-- Monthly Data -->
-    <div class="col-xl-8 col-lg-7">
-      <div class="card shadow mb-4">
+  <!-- Top Data & Performance Tables Row -->
+  <div class="row g-4 mb-4">
+    <!-- Top Charterers -->
+    <div class="col-xl-4">
+      <div class="card shadow">
         <div class="card-header py-3">
-          <h6 class="m-0 fw-bold text-primary">Monthly Overview</h6>
+          <h6 class="m-0 fw-bold text-primary">Top Charterers</h6>
         </div>
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover align-middle">
               <thead class="table-light">
                 <tr>
-                  <th>Month</th>
-                  <th>Contracts</th>
-                  <th>Invoices</th>
-                  <th>Revenue (USD)</th>
+                  <th scope="col">Charterer</th>
+                  <th scope="col">Contracts</th>
+                  <th scope="col">Value</th>
                 </tr>
               </thead>
               <tbody>
-                {% for item in monthly_data %}
+                {% for charterer in top_charterers %}
                 <tr>
-                  <td>{{ item.month }}</td>
-                  <td>{{ item.contract_count }}</td>
-                  <td>{{ item.invoice_count }}</td>
-                  <td>${{ item.invoice_value|floatformat:2 }}</td>
+                  <td>{{ charterer.charterer }}</td>
+                  <td>{{ charterer.count }}</td>
+                  <td>
+                    <div class="progress" style="height: 8px; width: 80px;">
+                      <div class="progress-bar bg-success charterer-bar" role="progressbar" 
+                           aria-valuenow="{{ charterer.count }}" 
+                           aria-valuemin="0" 
+                           aria-valuemax="10"></div>
+                    </div>
+                  </td>
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="4" class="text-center py-4">No monthly data found</td>
+                  <td colspan="3" class="text-center py-4">No data found</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -217,10 +327,50 @@
         </div>
       </div>
     </div>
-
+    
+    <!-- Top Vessels -->
+    <div class="col-xl-4">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 fw-bold text-primary">Top Vessels</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Vessel</th>
+                  <th scope="col">Contracts</th>
+                  <th scope="col">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for vessel in top_vessels %}
+                <tr>
+                  <td>{{ vessel.vessel }}</td>
+                  <td>{{ vessel.count }}</td>
+                  <td>
+                    <div class="progress-bar bg-info vessel-bar" role="progressbar"
+                         aria-valuenow="{{ vessel.count }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="10"></div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="3" class="text-center py-4">No data found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <!-- Quick Actions -->
-    <div class="col-xl-4 col-lg-5">
-      <div class="card shadow mb-4">
+    <div class="col-xl-4">
+      <div class="card shadow">
         <div class="card-header py-3">
           <h6 class="m-0 fw-bold text-primary">Quick Actions</h6>
         </div>
@@ -243,87 +393,156 @@
       </div>
     </div>
   </div>
+  
+  <!-- Monthly Data Row -->
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 fw-bold text-primary">Monthly Performance Overview</h6>
+          <button class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-download me-1"></i> Export Data
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Month</th>
+                  <th>Contracts</th>
+                  <th>Invoices</th>
+                  <th>Revenue (USD)</th>
+                  <th>Growth</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in monthly_data %}
+                <tr>
+                  <td><strong>{{ item.month }}</strong></td>
+                  <td>{{ item.contract_count }}</td>
+                  <td>{{ item.invoice_count }}</td>
+                  <td>${{ item.invoice_value|floatformat:2 }}</td>
+                  <td>
+                    {% if forloop.counter > 1 %}
+                      <span class="text-muted">-</span>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
+                      <i class="fas fa-chart-line"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center py-4">No monthly data found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Let's use a different version of Chart.js -->
+<!-- Chart.js and Moment.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script src="{% static 'js/dashboard_charts.js' %}"></script>
 
-<!-- Data element to store Django template values -->
-<script type="application/json" id="chart-data-json">
+<!-- Store Django values in a data element -->
+<script type="text/template" id="dashboard-data">
   {
-    "pending": {{ pending_contracts|default:0 }},
-    "finance": {{ finance_contracts|default:0 }},
-    "billed": {{ billed_contracts|default:0 }}
+    "pendingCount": {{ pending_contracts|default:0 }},
+    "financeCount": {{ finance_contracts|default:0 }},
+    "billedCount": {{ billed_contracts|default:0 }},
+    "monthlyData": {{ monthly_data|safe|default:"[]" }}
   }
 </script>
 
+<!-- Then use pure JavaScript for initialization -->
 <script>
-  // Wait for page to load
-  window.onload = function() {
-    // Get data from JSON element
-    var chartData = JSON.parse(document.getElementById('chart-data-json').textContent);
-    
-    // Find the canvas element
-    var ctx = document.getElementById('contractStatusChart');
-    
-    // Log for debugging
-    console.log("Chart values:", chartData);
-    
-    // Create pie chart
-    if (ctx) {
-      var myPieChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-          labels: ["Pending", "Finance", "Billed"],
-          datasets: [{
-            data: [chartData.pending, chartData.finance, chartData.billed],
-            backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc'],
-            hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf'],
-            hoverBorderColor: "rgba(234, 236, 244, 1)"
-          }],
-        },
-        options: {
-          maintainAspectRatio: false,
-          tooltips: {
-            backgroundColor: "rgb(255,255,255)",
-            bodyFontColor: "#858796",
-            borderColor: '#dddfeb',
-            borderWidth: 1,
-            xPadding: 15,
-            yPadding: 15,
-            displayColors: false,
-            caretPadding: 10,
-          },
-          legend: {
-            display: true,
-            position: "bottom"
-          },
-          cutoutPercentage: 0,
-        },
-      });
-    }
-  };
-
-  // Initialize progress bars with animation
   document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-      document.querySelectorAll('.progress-contract').forEach(function(bar) {
-        var value = parseInt(bar.getAttribute('data-value') || 0);
-        var total = parseInt(bar.getAttribute('data-total') || 1);
-        var percent = total > 0 ? (value / total * 100) : 0;
+    // Initialize progress bars
+    document.querySelectorAll('.progress-contract').forEach(function(bar) {
+      var value = bar.getAttribute('data-value') || 0;
+      var total = bar.getAttribute('data-total') || 1;
+      var percent = (value / total) * 100;
+      bar.style.width = percent + '%';
+      bar.textContent = Math.round(percent) + '%';
+    });
+    
+    // Parse the data from template
+    try {
+      var dataElement = document.getElementById('dashboard-data');
+      if (!dataElement) {
+        console.error("Dashboard data element not found");
+        return;
+      }
+      
+      var dataJson = dataElement.textContent;
+      var dashboardData = JSON.parse(dataJson);
+      
+      console.log("Dashboard data:", dashboardData);
+      
+      // Initialize contract status chart
+      if (typeof initContractStatusChart === 'function') {
+        initContractStatusChart(
+          parseInt(dashboardData.pendingCount) || 0, 
+          parseInt(dashboardData.financeCount) || 0, 
+          parseInt(dashboardData.billedCount) || 0
+        );
+      } else {
+        console.error("initContractStatusChart function not found");
+      }
+      
+      // Process monthly data for revenue chart
+      if (typeof initRevenueChart === 'function' && dashboardData.monthlyData && dashboardData.monthlyData.length > 0) {
+        var months = [];
+        var revenues = [];
+        var contracts = [];
         
-        // Ensure percent is between 0-100
-        percent = Math.min(Math.max(percent, 0), 100);
+        dashboardData.monthlyData.forEach(function(item) {
+          months.push(item.month);
+          revenues.push(parseFloat(item.invoice_value) || 0);
+          contracts.push(parseInt(item.contract_count) || 0);
+        });
         
-        // Apply width with animation
-        bar.style.transition = "width 1s ease-in-out";
-        bar.style.width = percent + '%';
-        
-        console.log('Setting progress bar width to ' + percent + '%');
-      });
-    }, 300); // Small delay to ensure DOM is fully processed
+        if (months.length > 0) {
+          initRevenueChart(months, revenues, contracts);
+        } else {
+          console.error("No monthly data available for revenue chart");
+        }
+      } else {
+        console.error("Revenue chart initialization failed - function not found or no data");
+      }
+    } catch(e) {
+      console.error("Error initializing dashboard charts:", e);
+    }
+    
+    // Initialize date range picker
+    $('#date-range-picker').daterangepicker({
+      opens: 'left',
+      startDate: moment().subtract(29, 'days'),
+      endDate: moment(),
+      ranges: {
+        'Today': [moment(), moment()],
+        'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+        'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+        'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+        'This Month': [moment().startOf('month'), moment().endOf('month')],
+        'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+      }
+    });
   });
 </script>
 {% endblock %} 
