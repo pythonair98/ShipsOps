@@ -147,22 +147,22 @@
                   <button type="button" class="btn btn-sm btn-info view-user" data-id="{{ user.id }}">
                     <i class="fas fa-eye"></i>
                   </button>
-                  <button type="button" class="btn btn-sm btn-primary edit-user" data-id="{{ user.id }}">
+                  <a href="{% url 'edit_user' user.user.id %}" class="btn btn-sm btn-primary">
                     <i class="fas fa-edit"></i>
-                  </button>
+                  </a>
                   <div class="btn-group" role="group">
                     <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                       <i class="fas fa-ellipsis-v"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                      <li><a class="dropdown-item text-info" href="#"><i class="fas fa-key me-2"></i>Reset Password</a></li>
+                      <li><a class="dropdown-item text-info" href="{% url 'reset_user_password' user.user.id %}"><i class="fas fa-key me-2"></i>Reset Password</a></li>
                       {% if user.user.is_active %}
-                      <li><a class="dropdown-item text-warning" href="#"><i class="fas fa-ban me-2"></i>Deactivate</a></li>
+                      <li><a class="dropdown-item text-warning" href="{% url 'deactivate_user' user.user.id %}"><i class="fas fa-ban me-2"></i>Deactivate</a></li>
                       {% else %}
-                      <li><a class="dropdown-item text-success" href="#"><i class="fas fa-check-circle me-2"></i>Activate</a></li>
+                      <li><a class="dropdown-item text-success" href="{% url 'activate_user' user.user.id %}"><i class="fas fa-check-circle me-2"></i>Activate</a></li>
                       {% endif %}
                       <li><hr class="dropdown-divider"></li>
-                      <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                      <li><a class="dropdown-item text-danger" href="{% url 'delete_user' user.user.id %}"><i class="fas fa-trash me-2"></i>Delete</a></li>
                     </ul>
                   </div>
                 </div>

@@ -2,6 +2,9 @@ from django.urls import path
 from .views import (
     contract_list,
     contract_new,
+    contract_edit,
+    contract_delete,
+    contract_detail,
     invoice_list,
     invoice_new,
     contract_change_state,
@@ -19,6 +22,9 @@ urlpatterns = [
     # Contract related URLs
     path('contract/', contract_list, name='contract_list'),
     path('contract/new/', contract_new, name='contract_new'),  # Added trailing slash for consistency
+    path('contract/<int:contract_id>/', contract_detail, name='contract_detail'),
+    path('contract/edit/<int:contract_id>/', contract_edit, name='contract_edit'),
+    path('contract/delete/<int:contract_id>/', contract_delete, name='contract_delete'),
     
     # Invoice related URLs
     path('invoice/', invoice_list, name='invoice_list'),

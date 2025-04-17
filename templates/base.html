@@ -50,12 +50,15 @@
     }
     
     .sidebar-header {
-      padding: 1.5rem 1rem;
+      padding: 2rem 1rem;
       border-bottom: 1px solid rgba(0,0,0,0.1);
+      text-align: center;
     }
     
     .sidebar-brand img {
-      height: 40px;
+      height: 70px;
+      display: block;
+      margin: 0 auto;
     }
     
     .nav-menu {
@@ -175,7 +178,8 @@
     }
     
     .sidebar-collapsed .sidebar .sidebar-brand img {
-      height: 30px;
+      height: 50px;
+      margin: 0 auto;
     }
     
     .sidebar-collapsed .main-content {
@@ -223,12 +227,12 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <a class="sidebar-brand" href="/">
-        <img src="{% static 'imgs/logo1.png' %}" alt="logo" />
+        <img src="{% static 'imgs/1.png' %}" alt="logo" />
       </a>
     </div>
     <ul class="nav-menu list-unstyled">
       <li class="nav-item">
-        <a class="nav-link active" href="#">
+        <a class="nav-link active" href="{% url 'home' %}">
           <i class="fas fa-home"></i>
           <span>Home</span>
         </a>

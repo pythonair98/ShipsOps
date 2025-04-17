@@ -341,14 +341,22 @@ def contract_change_state(request, contract_id):
     contract = get_object_or_404(Contract, id=contract_id)
     state = request.GET.get('state')
     
-    if state == 'finance':
-        # Set state to indicate sent to finance (assuming state=1 means sent to finance)
-        contract.state = 1
+    state_messages = {
+        '0': 'marked as Pending',
+        '1': 'sent to Finance Department',
+        '2': 'marked as Billed',
+        'finance': 'sent to Finance Department'
+    }
+    
+    if state in state_messages:
+        if state == 'finance':
+            # For backward compatibility
+            contract.state = 1
+        else:
+            contract.state = int(state)
+        
         contract.save()
-        messages.success(request, f"Contract #{contract.id} for {contract.vessel} sent to Finance Department")
-    else:
-        # Generic state change handling could be added here
-        pass
+        messages.success(request, f"Contract #{contract.id} for {contract.vessel} {state_messages[state]}")
     
     return redirect("contract_list")
 
