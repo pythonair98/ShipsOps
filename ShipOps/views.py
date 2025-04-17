@@ -215,7 +215,7 @@ def contract_detail(request, contract_id):
     
     return render(request, 'contract_detail.html', context)
 
-
+@login_required
 def invoice_list(request):
     """
     View to display a list of all invoices.
