@@ -101,7 +101,7 @@ def edit_user_view(request, user_id):
         if form.is_valid():
             form.save()
             messages.success(request, "User updated successfully")
-            return redirect('user_list')
+            return redirect('/users/')  # Use absolute URL path
         else:
             messages.error(request, "Invalid form submission")
     else:
@@ -127,7 +127,7 @@ def delete_user_view(request, user_id):
     if request.method == 'POST':
         user.delete()
         messages.success(request, "User deleted successfully")
-        return redirect('user_list')  # Assuming you have a user list view
+        return redirect('/users/')  # Use absolute URL path
     
     return render(request, 'confirm_delete_user.html', {'user': user})
 
@@ -148,7 +148,7 @@ def activate_user_view(request, user_id):
     user.save()
     
     messages.success(request, f"User {user.username} has been activated successfully")
-    return redirect('user_list')  # Assuming you have a user list view
+    return redirect('/users/')  # Use absolute URL path
 
 
 @login_required
@@ -167,7 +167,7 @@ def deactivate_user_view(request, user_id):
     user.save()
     
     messages.success(request, f"User {user.username} has been deactivated successfully")
-    return redirect('user_list')  # Assuming you have a user list view
+    return redirect('/users/')  # Use absolute URL path
 
 @login_required
 def reset_user_password_view(request, user_id):
@@ -190,7 +190,7 @@ def reset_user_password_view(request, user_id):
             user.set_password(new_password)
             user.save()
             messages.success(request, f"Password for {user.username} has been reset successfully")
-            return redirect('user_list')
+            return redirect('/users/')  # Use absolute URL path
         else:
             messages.error(request, "Passwords do not match")
     

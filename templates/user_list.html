@@ -19,17 +19,17 @@
   <!-- Filters Card -->
   <div class="card shadow-sm mb-4">
     <div class="card-body p-3">
-      <form id="user-filter-form" class="row g-3 align-items-end">
+      <form id="user-filter-form" class="row g-3 align-items-end" action="" method="GET">
         <div class="col-md-3">
           <label for="name-search" class="form-label small">Search by Name</label>
-          <input type="text" class="form-control" id="name-search" name="name" placeholder="Search by name...">
+          <input type="text" class="form-control" id="name-search" name="name" placeholder="Search by name..." value="{{ name_filter }}">
         </div>
         <div class="col-md-2">
           <label for="role-filter" class="form-label small">Role</label>
           <select class="form-select" id="role-filter" name="role">
             <option value="">All Roles</option>
             {% for role in roles %}
-            <option value="{{ role.id }}">{{ role.name }}</option>
+            <option value="{{ role.id }}" {% if role_filter == role.id|stringformat:"i" %}selected{% endif %}>{{ role.name }}</option>
             {% endfor %}
           </select>
         </div>
@@ -38,7 +38,7 @@
           <select class="form-select" id="department-filter" name="department">
             <option value="">All Departments</option>
             {% for dept in departments %}
-            <option value="{{ dept }}">{{ dept }}</option>
+            <option value="{{ dept }}" {% if department_filter == dept %}selected{% endif %}>{{ dept }}</option>
             {% endfor %}
           </select>
         </div>
@@ -46,10 +46,10 @@
           <label for="permission-filter" class="form-label small">Permission</label>
           <select class="form-select" id="permission-filter" name="permission">
             <option value="">All Permissions</option>
-            <option value="contracts_view">View Contracts</option>
-            <option value="contracts_edit">Edit Contracts</option>
-            <option value="invoices_view">View Invoices</option>
-            <option value="invoices_edit">Edit Invoices</option>
+            <option value="contracts_view" {% if permission_filter == 'contracts_view' %}selected{% endif %}>View Contracts</option>
+            <option value="contracts_edit" {% if permission_filter == 'contracts_edit' %}selected{% endif %}>Edit Contracts</option>
+            <option value="invoices_view" {% if permission_filter == 'invoices_view' %}selected{% endif %}>View Invoices</option>
+            <option value="invoices_edit" {% if permission_filter == 'invoices_edit' %}selected{% endif %}>Edit Invoices</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -57,9 +57,9 @@
             <button type="submit" class="btn btn-primary">
               <i class="fas fa-filter me-1"></i> Filter
             </button>
-            <button type="reset" class="btn btn-outline-secondary">
+            <a href="{{ request.path }}" class="btn btn-outline-secondary">
               <i class="fas fa-undo me-1"></i> Reset
-            </button>
+            </a>
           </div>
         </div>
       </form>
@@ -183,7 +183,7 @@
         <ul class="pagination justify-content-center">
           {% if users.has_previous %}
           <li class="page-item">
-            <a class="page-link" href="?page={{ users.previous_page_number }}" aria-label="Previous">
+            <a class="page-link" href="?page={{ users.previous_page_number }}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if permission_filter %}&permission={{ permission_filter }}{% endif %}" aria-label="Previous">
               <span aria-hidden="true">&laquo;</span>
             </a>
           </li>
@@ -199,13 +199,13 @@
             {% if users.number == i %}
               <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
             {% else %}
-              <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+              <li class="page-item"><a class="page-link" href="?page={{ i }}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if permission_filter %}&permission={{ permission_filter }}{% endif %}">{{ i }}</a></li>
             {% endif %}
           {% endfor %}
 
           {% if users.has_next %}
           <li class="page-item">
-            <a class="page-link" href="?page={{ users.next_page_number }}" aria-label="Next">
+            <a class="page-link" href="?page={{ users.next_page_number }}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if department_filter %}&department={{ department_filter }}{% endif %}{% if permission_filter %}&permission={{ permission_filter }}{% endif %}" aria-label="Next">
               <span aria-hidden="true">&raquo;</span>
             </a>
           </li>
@@ -399,26 +399,8 @@
     // Initialize filter form
     const filterForm = document.getElementById('user-filter-form');
     if (filterForm) {
-      filterForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        // Filter implementation would go here
-        console.log('Filtering users...');
-        
-        // Example for demonstration - in real app you would submit the form or use AJAX
-        const formData = new FormData(filterForm);
-        const filters = Object.fromEntries(formData.entries());
-        console.log('Filters:', filters);
-        
-        // You would typically reload the page with these filters as query params
-        // or use AJAX to update the table
-      });
-      
-      filterForm.addEventListener('reset', function() {
-        // Reset the form and reload without filters
-        setTimeout(() => {
-          window.location.href = window.location.pathname;
-        }, 10);
-      });
+      // Remove the event listeners that prevent form submission
+      // Form will now submit naturally via GET to the backend
     }
     
     // View User

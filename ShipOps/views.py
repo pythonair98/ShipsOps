@@ -138,7 +138,7 @@ def contract_list(request):
     return render(request, 'contract_list.html', context)
 
 
-@login_required
+@login_required(login_url='login')
 def contract_edit(request, contract_id):
     """
     View to edit an existing contract.

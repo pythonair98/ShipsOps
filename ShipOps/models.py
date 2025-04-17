@@ -124,19 +124,62 @@ class Invoice(models.Model):
         price_usd_in_word: Price in USD written in words.
         aed_price_in_word: Price in AED written in words.
         aed_price: Price in AED.
+        status: Current status of the invoice (PENDING, PAID, OVERDUE, CANCELLED).
+        due_date: The date payment is due.
+        notes: Additional notes or comments about the invoice.
         created_at: Timestamp when the invoice was created.
         contract: One-to-one relation with a Contract (each contract has at most one invoice).
     """
+    # Status choices
+    STATUS_PENDING = 0
+    STATUS_PAID = 1
+    STATUS_OVERDUE = 2
+    STATUS_CANCELLED = 3
+    
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_PAID, 'Paid'),
+        (STATUS_OVERDUE, 'Overdue'),
+        (STATUS_CANCELLED, 'Cancelled'),
+    ]
+    
     price_usd = models.FloatField(default=0.0, null=True, blank=True)
     price_usd_in_word = models.CharField(max_length=150, default="", null=True, blank=True)
     aed_price_in_word = models.CharField(max_length=150, default="", null=True, blank=True)
     aed_price = models.FloatField(default=0.0, null=True, blank=True)
+    status = models.IntegerField(
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        help_text="Current status of the invoice"
+    )
+    due_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     contract = models.OneToOneField(
         Contract,
         on_delete=models.CASCADE,
         related_name='invoice_obj'
     )
+
+    def is_overdue(self):
+        """
+        Check if the invoice is overdue based on due_date
+        """
+        if self.due_date and self.status == self.STATUS_PENDING:
+            return timezone.now().date() > self.due_date
+        return False
+    
+    def get_status_display_class(self):
+        """
+        Returns Bootstrap class name for the status
+        """
+        status_classes = {
+            self.STATUS_PENDING: 'warning',
+            self.STATUS_PAID: 'success',
+            self.STATUS_OVERDUE: 'danger',
+            self.STATUS_CANCELLED: 'secondary',
+        }
+        return status_classes.get(self.status, 'secondary')
 
     def __str__(self):
         return f"Invoice #{self.id} for Contract #{self.contract.id}"
