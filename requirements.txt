@@ -1,0 +1,11 @@
+Django==5.1.7
+Pillow==10.2.0  # For image handling
+python-dotenv==1.0.1  # For environment variables
+django-crispy-forms==2.1  # For better form rendering (optional)
+django-filter==24.1  # For filtering querysets (optional)
+gunicorn==22.0.0  # For production deployment
+whitenoise==6.6.0  # For serving static files in production
+django-debug-toolbar==4.3.0  # For debugging (development only)
+pytest==8.0.0  # For testing
+pytest-django==4.7.0  # For Django specific testing
+coverage==7.4.1  # For test coverage 
