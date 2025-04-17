@@ -28,7 +28,12 @@ DEBUG = True
 ALLOWED_HOSTS = ["127.0.0.1","localhost","ships.milahaarabia.com"]
 
 # CSRF Trusted Origins
-CSRF_TRUSTED_ORIGINS = ['https://ships.milahaarabia.com', 'http://127.0.0.1', 'http://localhost']
+CSRF_TRUSTED_ORIGINS = [
+    'https://ships.milahaarabia.com',
+    'http://ships.milahaarabia.com',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000'
+]
 
 
 # Application definition
