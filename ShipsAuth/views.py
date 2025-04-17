@@ -99,12 +99,9 @@ def edit_user_view(request, user_id):
     if request.method == 'POST':
         form = RegisterForm(request.POST, request.FILES, instance=user)
         if form.is_valid():
-            user = form.save(commit=False)
-            if form.cleaned_data.get('password'):
-                user.set_password(form.cleaned_data['password'])
-            user.save()
+            form.save()
             messages.success(request, "User updated successfully")
-            return redirect('user_list')  # Assuming you have a user list view
+            return redirect('user_list')
         else:
             messages.error(request, "Invalid form submission")
     else:

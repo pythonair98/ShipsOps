@@ -72,21 +72,33 @@ class LoginForm(forms.Form):
     
 
 
-class RegisterForm(forms.Form):
-    username = forms.CharField(max_length=100)
+class RegisterForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
-    confirm_password = forms.CharField(widget=forms.PasswordInput)
-    email = forms.EmailField()
-    first_name = forms.CharField(max_length=100)
-    last_name = forms.CharField(max_length=100)
-    phone_number = forms.CharField(max_length=100)
+    confirm_password = forms.CharField(widget=forms.PasswordInput, required=False)
     profile_image = forms.ImageField(required=False)
+    phone_number = forms.CharField(max_length=100, required=False)
+    
+    class Meta:
+        from django.contrib.auth.models import User
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name']
     
     def clean_username(self):
-        from django.contrib.auth.models import User
         username = self.cleaned_data.get('username')
-        if User.objects.filter(username=username).exists():
-            raise forms.ValidationError("This username is already taken. Please choose another one.")
+        
+        # Get current instance (for editing)
+        instance = getattr(self, 'instance', None)
+        
+        # Check if username exists but exclude current instance if editing
+        if instance and instance.pk:
+            users = self.Meta.model.objects.filter(username=username).exclude(pk=instance.pk)
+            if users.exists():
+                raise forms.ValidationError("This username is already taken. Please choose another one.")
+        else:
+            # For new users
+            if self.Meta.model.objects.filter(username=username).exists():
+                raise forms.ValidationError("This username is already taken. Please choose another one.")
+        
         return username
     
     def clean(self):
@@ -94,30 +106,32 @@ class RegisterForm(forms.Form):
         password = cleaned_data.get('password')
         confirm_password = cleaned_data.get('confirm_password')
         
-        if password and confirm_password and password != confirm_password:
-            raise forms.ValidationError("Passwords do not match")
+        # If this is a new user or password is being changed
+        if not self.instance.pk or password:
+            if password != confirm_password:
+                raise forms.ValidationError("Passwords do not match")
         
         return cleaned_data
     
     def save(self, commit=True):
-        from django.contrib.auth.models import User
+        user = super().save(commit=False)
         
-        user = User(
-            username=self.cleaned_data['username'],
-            email=self.cleaned_data['email'],
-            first_name=self.cleaned_data['first_name'],
-            last_name=self.cleaned_data['last_name']
-        )
+        # Only set password if it's provided (for editing users)
+        if self.cleaned_data.get('password'):
+            user.set_password(self.cleaned_data['password'])
         
         if commit:
-            user.set_password(self.cleaned_data['password'])
             user.save()
             
-            # Create profile for the user
-            profile = Profile(
-                user_obj=user,
-                profile_image=self.cleaned_data.get('profile_image', None)
-            )
+            # Create or update profile
+            try:
+                profile = Profile.objects.get(user_obj=user)
+            except Profile.DoesNotExist:
+                profile = Profile(user_obj=user)
+                
+            if self.cleaned_data.get('profile_image'):
+                profile.profile_image = self.cleaned_data['profile_image']
+            
             profile.save()
         
         return user
