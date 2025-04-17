@@ -20,13 +20,15 @@ from django.views.static import serve
 from django.conf import settings
 from django.conf.urls.static import static
 
-from ShipsAuth.views import login_view, user_list
+from ShipsAuth.views import login_view, user_list, logout_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
     path('', include('ShipOps.urls')),
     path('users/', user_list, name='user_list'),
+    path('auth/', include('ShipsAuth.urls')),
 ]
 
 if settings.DEBUG:
