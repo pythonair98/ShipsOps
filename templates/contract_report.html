@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- custom css -->
+    <link rel="stylesheet"href="{{ url_for('static', filename='css/contract/style.css') }}"/>
+</head>
+
+<body>
+    <!-- Start Page1 -->
+    <div class="container">
+    <div class="page1">
+    <p>REF various telecom and messages pleased to recap main terms {{contract.vessel}}</p>
+        <p class="table-head">Strictly private and confidential & not to be reported</p>
+        <table>
+            <tr>
+                <td>1. Charter Party Dated</td>
+                <td>{{ contract.charter_party_dated }}</td>
+            </tr>
+            <tr>
+                <td>2. Charterer</td>
+                <td>{{ contract.charterer }}
+                </td>
+            </tr>
+            <tr>
+                <td>3. Owner / Manager</td>
+                <td>{{ contract.owner }}</td>
+            </tr>
+            <tr>
+                <td>4. Charter Party Form</td>
+                <td>{{ contract.charter_party_form }}</td>
+            </tr>
+            <tr>
+                <td>5. Vessel</td>
+                <td>{{ contract.vessel }}</td>
+            </tr>
+            <tr>
+                <td>6. Charter Party Speed</td>
+                <td>{{ contract.charter_party_speed }}</td>
+            </tr>
+            <tr>
+                <td>7. Last three cargoes</td>
+                <td>{{ contract.last_three_cargoes }}</td>
+            </tr>
+            <tr>
+                <td>8. Cargo</td>
+                <td>{{ contract.cargo}}</td>
+            </tr>
+            <tr>
+                <td>9. Quantity</td>
+                <td>{{ contract.quantity}}</td>
+            </tr>
+            <tr>
+                <td>10. Heating</td>
+                <td>{{ contract.heating }}</td>
+            </tr>
+            <tr>
+                <td>11. Load Port</td>
+                <td>{{ contract.load_port }}</td>
+            </tr>
+            <tr>
+                <td>12. Laycan</td>
+                <td>{{ contract.laycan }}</td>
+            </tr>
+            <tr>
+                <td>13. Discharge Port</td>
+                <td>{{ contract.discharge_port }}</td>
+            </tr>
+            <tr>
+                <td>14. Freight</td>
+                <td>{{ contract.freight}}</td>
+            </tr>
+            <tr>
+                <td>15. Demurrage</td>
+                <td>{{ contract.demurrage}}</td>
+            </tr>
+            <tr>
+                <td>16. LAYTIME</td>
+                <td>{{ contract.laytime }}</td>
+            </tr>
+            <tr>
+                <td>17. Payment terms</td>
+                <td>{{ contract.payment_terms}}</td>
+            </tr>
+            <tr>
+                <td>18. Payment to</td>
+                <td>{{ contract.payment_to }}</td>
+            </tr>
+            <tr>
+                <td>19. Brokers</td>
+                <td>{{ contract.brokers }}</td>
+            </tr>
+            <tr>
+                <td>20. Commission</td>
+                <td>{{ contract.commision }}</td>
+            </tr>
+
+        </table>
+
+    </div>
+    </div>
+    <!--End page1  -->
+    <!--Start Page2 -->
+        <div class="container">
+    <div class="page2">
+        <ul class="content">
+            <li> All port, agency charges at load port and/or discharge port on the charterers’ account and settled
+                directly by them.</li>
+            <li> All port, wharfage, customs at load port and/or discharge port on the charterers’ account and settled
+                directly by
+                them.</li>
+            <li> Any taxes and/or dues on cargo/freight including wayleave charges, wharfage charges to be for
+                charterers’ account and
+                settled directly by them.</li>
+            <li> Vessel to be re delivered with clean tanks and lines similar to original condition delivered.</li>
+            <li> Charterers are responsible for loading and discharging arrangements.</li>
+            <li> Freight/Demurrages/Extras payable to the owners/managers to be paid within ten days after completion
+                of loading.</li>
+        </ul>
+        <p class="end">End Recap.</p>
+        <h4>Glow Shipping Lines LLC</h4>
+        <div class="shipping">
+            <div>
+                <p>GM:</p>
+                <p>Mr. Anas Telfah</p>
+            </div>
+            <div>
+                <p>DPA:</p>
+                <p>Capt. Mohamed Esmat</p>
+            </div>
+            <div>
+                <p>ACC:</p>
+                <p>Mr. Ahmed Essa</p>
+            </div>
+            <div>
+                <p>Glow Oil FZC</p>
+            </div>
+            <div>
+                <p>GM:</p>
+                <p>Mr. Mohanad Hatem</p>
+            </div>
+        </div>
+    </div>
+    </div>
+    <!--End page2  -->
+</body>
+
+</html>

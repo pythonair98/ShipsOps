@@ -1,0 +1,110 @@
+/* Global Style */
+
+:root {
+  --dark-color: #000;
+  --blue-color: #8cd0e3;
+  --pink-color: #e78eca;
+  --section-color: #fff;
+}
+body {
+  font-family: "Cairo", sans-serif;
+}
+.main-btn {
+  background-color: var(--pink-color);
+  color: var(--section-color);
+  padding: 0.5rem 1rem;
+  font-size: 17px;
+}
+.main-btn:hover {
+  color: var(--blue-color);
+}
+/* ---------- scrollbar----------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  border-radius: 10px;
+  box-shadow: inset 0 0 6px var(--pink-color);
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  -ms-border-radius: 10px;
+  -o-border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  box-shadow: inset 0 0 6px var(--blue-color);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-corner {
+  display: none;
+}
+
+/* End Style */
+/* Start Navbar */
+.navbar {
+  background-color: var(--blue-color);
+}
+.navbar .navbar-nav .nav-link {
+  color: var(--dark-color);
+  position: relative;
+}
+.navbar .navbar-nav .nav-link.active::after,
+.navbar .navbar-nav .nav-link:focus::after,
+.navbar .navbar-nav .nav-link:hover::after {
+  content: "";
+  position: absolute;
+  width: calc(100% - 22px);
+  height: 100%;
+  top: -7px;
+  left: 10px;
+  border-bottom: 2px solid var(--pink-color);
+}
+@media(max-width:991px){
+  .navbar .navbar-nav .nav-link {
+    width: fit-content;
+  }
+  .navbar .navbar-nav .nav-link.active::after,
+.navbar .navbar-nav .nav-link:focus::after,
+.navbar .navbar-nav .nav-link:hover::after {
+left: 0;
+width: 100%;
+}
+}
+.navbar-head-logo img {
+  height: 60px;
+}
+
+.navbar-brand img {
+  height: 60px;
+}
+
+.navbar .search {
+  border-left: 1px solid var(--dark-color);
+}
+.navbar .navbar-toggler {
+  color: var(--dark-color);
+  font-size: 25px;
+  border-color: var(--dark-color);
+}
+.navbar .navbar-toggler:focus {
+  box-shadow: none;
+}
+.customize-nav {
+  flex-grow: 0;
+}
+/* End Navbar */
+/* Start Table */
+.tb-border {
+  border-top: none !important;
+}
+.cl-btn-pink {
+  background-color: var(--pink-color);
+}
+.cl-btn-blue {
+  background-color: var(--blue-color);
+}
+@media(max-width:500px){
+ .cl-btn-blue {
+margin-bottom: 10px;} 
+}
+/* End Table */

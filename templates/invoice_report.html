@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+    <link rel="stylesheet" href="../static/css/invoice/invoice.css" />
+</head>
+
+<body>
+    <!-- Start Header -->
+    <div class="container">
+        <div class="header">
+            <img src="images/logo.jpeg" alt="glow" />
+            <div class="header-content">
+                <p>جلو للخطوط الملاحية ش.ذ.م.م</p>
+                <hr>
+                <p>glow shipping lines l.l.c.</p>
+            </div>
+        </div>
+    </div>
+    <!-- End Header -->
+    <!-- Start Content -->
+    <div class="container">
+        <div class="content">
+            <h1>VESSEL CHARTERING INVOICE</h1>
+            <div class="info">
+            <p><input style="border: 0" type="text" value="INV REF.0902"></p>
+                <p>Date: {{ date.strftime('%Y-%m-%d') }}</p>
+                <p>Our TAX REGISTARTION NUMBER:100021551500003</p>
+            </div>
+            <!-- ./info -->
+            <div class="send">
+                <p>To: {{ contract.charterer}}</p>
+                <p>Ref Charter Party Date {{ contract.charter_party_dated.strftime('%Y-%m-%d')}}</p>
+            </div>
+            <!-- ./send -->
+            <table>
+                <thead>
+                    <tr class="color-cell">
+                        <th>Particulars</td>
+                        <th class="empty"></th>
+                        <th>Price/ $</td>
+                        <th> Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                    <td><input style="border: 0" type="text"></td>
+                        <td class="empty"></td>
+                        <td>{{ contract.invoice.price_usd }}</td>
+                        <td>{{ contract.invoice.price_usd }}</td>
+                    </tr>
+                    <tr class="color-cell">
+                        <td colspan="3">{{ contract.invoice.price_usd_in_word}}</td>
+
+                        <td>{{ contract.invoice.price_usd }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" style="text-align:right">VAT 5%</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">{{ contract.invoice.price_usd_in_word}}</td>
+                        <td>{{ contract.invoice.price_usd }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">{{ contract.invoice.aed_price_in_word }}</td>
+                        <td>{{ contract.invoice.aed_price }}</td>
+                    </tr>
+
+                </tbody>
+            </table>
+            <!-- End Table -->
+            <p class="account">please effect remittance in AED Company account:</p>
+            <div class="sub-menu">
+                <p>ACCOUNT NAME:Glow Shipping Lines LLc<br />
+                    Account number:11397703920001<br />
+                    IBAN Details: AE4700113920001<br />
+                    BANK NAME :ADCB<br />
+                    Swift:ADCBAEAA</p>
+            </div>
+            <!-- ./sub-menu -->
+        </div>
+    </div>
+    <!-- End Content -->
+</body>
+
+</html>

@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block head %} 
+{{ super() }} 
+<style>
+  .filter-card {
+    margin-bottom: 1.5rem;
+  }
+  .permission-badge {
+    font-size: 0.7rem;
+    margin-right: 3px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">User Management</h2>
+    <button type="button" class="btn cl-btn-pink" data-bs-toggle="modal" data-bs-target="#addUserModal">
+      <i class="fas fa-user-plus me-2"></i>Add User
+    </button>
+  </div>
+
+  <!-- Filter Section -->
+  <div class="card shadow-sm filter-card">
+    <div class="card-body">
+      <form method="GET" action="{% url 'user_list' %}">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div class="form-group">
+              <label for="search" class="form-label">Search</label>
+              <input type="text" name="search" id="search" class="form-control" placeholder="Name, Email, Username" value="{{ request.GET.search|default:'' }}">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="form-group">
+              <label for="role" class="form-label">Role</label>
+              <select name="role" id="role" class="form-select">
+                <option value="">All Roles</option>
+                <option value="admin" {% if request.GET.role == 'admin' %}selected{% endif %}>Administrator</option>
+                <option value="finance" {% if request.GET.role == 'finance' %}selected{% endif %}>Finance Department</option>
+                <option value="manager" {% if request.GET.role == 'manager' %}selected{% endif %}>Head Manager</option>
+                <option value="operations" {% if request.GET.role == 'operations' %}selected{% endif %}>Operations Staff</option>
+                <option value="viewer" {% if request.GET.role == 'viewer' %}selected{% endif %}>Read-only User</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="form-group">
+              <label for="status" class="form-label">Status</label>
+              <select name="status" id="status" class="form-select">
+                <option value="">All Status</option>
+                <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn cl-btn-blue w-100">
+              <i class="fas fa-search me-2"></i>Filter
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add User Modal -->
+  <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+          <form action="{% url 'register_user' %}" method="POST">
+            {% csrf_token %}
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="username" class="form-label">Username</label>
+                      <input class="form-control" id="username" name="username" required type="text" />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="password" class="form-label">Password</label>
+                      <input class="form-control" id="password" name="password" required type="password" />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="email" class="form-label">Email</label>
+                      <input class="form-control" id="email" name="email" required type="email" />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="phone_number" class="form-label">Phone Number</label>
+                      <input class="form-control" id="phone_number" name="phone_number" type="tel" />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="first_name" class="form-label">First Name</label>
+                      <input class="form-control" id="first_name" name="first_name" required type="text" />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="last_name" class="form-label">Last Name</label>
+                      <input class="form-control" id="last_name" name="last_name" required type="text" />
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="job" class="form-label">Job Title</label>
+                      <select name="job" id="job" class="form-select">
+                        <option value="Licensing Department Manager">Licensing Department Manager</option>
+                        <option value="Head of the inspection">Head of the inspection department</option>
+                        <option value="Inspection team official">Inspection team official</option>
+                        <option value="Inspector">Inspector</option>
+                        <option value="dataentry">Data Entry</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="role" class="form-label">User Role</label>
+                      <select name="role" id="role" class="form-select">
+                        <option value="viewer">Read-only User</option>
+                        <option value="operations">Operations Staff</option>
+                        <option value="finance">Finance Department</option>
+                        <option value="manager">Head Manager</option>
+                        <option value="admin">Administrator</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-12">
+                    <div class="form-group">
+                      <label class="form-label">Permissions</label>
+                      <div class="row g-2">
+                        <div class="col-md-3">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="can_view_contracts" name="can_view_contracts" checked>
+                            <label class="form-check-label" for="can_view_contracts">View Contracts</label>
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="can_edit_contracts" name="can_edit_contracts">
+                            <label class="form-check-label" for="can_edit_contracts">Edit Contracts</label>
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="can_view_invoices" name="can_view_invoices" checked>
+                            <label class="form-check-label" for="can_view_invoices">View Invoices</label>
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="can_edit_invoices" name="can_edit_invoices">
+                            <label class="form-check-label" for="can_edit_invoices">Edit Invoices</label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn cl-btn-blue">Add User</button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User List -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Username</th>
+              <th scope="col">Full Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Role</th>
+              <th scope="col">Permissions</th>
+              <th scope="col">Status</th>
+              <th scope="col">Date Joined</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.username }}</td>
+              <td>{{ user.first_name }} {{ user.last_name }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                {% if user.ops_profile.role %}
+                <span class="badge bg-info">{{ user.ops_profile.role.get_name_display }}</span>
+                {% else %}
+                <span class="badge bg-secondary">No Role</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if user.ops_profile.can_view_contracts %}
+                <span class="badge bg-secondary permission-badge">View Contracts</span>
+                {% endif %}
+                {% if user.ops_profile.can_edit_contracts %}
+                <span class="badge bg-primary permission-badge">Edit Contracts</span>
+                {% endif %}
+                {% if user.ops_profile.can_view_invoices %}
+                <span class="badge bg-secondary permission-badge">View Invoices</span>
+                {% endif %}
+                {% if user.ops_profile.can_edit_invoices %}
+                <span class="badge bg-primary permission-badge">Edit Invoices</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if user.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+              </td>
+              <td>{{ user.date_joined|date:"M d, Y" }}</td>
+              <td>
+                <div class="btn-group" role="group">
+                  <a href="{% url 'edit_user' user.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  {% if user.is_active %}
+                  <a href="{% url 'deactivate_user' user.id %}" class="btn btn-sm btn-outline-warning" title="Deactivate">
+                    <i class="fas fa-user-slash"></i>
+                  </a>
+                  {% else %}
+                  <a href="{% url 'activate_user' user.id %}" class="btn btn-sm btn-outline-success" title="Activate">
+                    <i class="fas fa-user-check"></i>
+                  </a>
+                  {% endif %}
+                  <a href="{% url 'reset_user_password' user.id %}" class="btn btn-sm btn-outline-secondary" title="Reset Password">
+                    <i class="fas fa-key"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center py-4">No users found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      {% if is_paginated %}
+      <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="First">
+              <span aria-hidden="true">&laquo;&laquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% endif %}
+          
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+              <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
+          
+          {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Last">
+              <span aria-hidden="true">&raquo;&raquo;</span>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

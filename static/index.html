@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>project</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css" />
+  <link rel="stylesheet" href="css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <!-- Start Logo -->
+  <div class="navbar-head-logo">
+    <img src="/imgs/logo1.png" alt="logo" />
+  </div>
+  <!-- End Logo -->
+
+  <!-- Start Navbar -->
+  <nav class="navbar navbar-expand-lg sticky-top">
+    <div class="container">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main" aria-controls="main"
+        aria-expanded="false" aria-label="Toggle navigation">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="collapse navbar-collapse customize-nav" id="main">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link p-2 p-lg-3 active" aria-current="page" href="#">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link p-2 p-lg-3" href="#">About</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link p-2 p-lg-3" href="#">Contact</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link p-2 p-lg-3" href="#">Blog</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link p-2 p-lg-3" href="user.html">Users</a>
+          </li>
+        </ul>
+        <div class="search ps-3 pe-3 d-none d-lg-block">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <a class="btn rounded-5 main-btn" href="#">Login</a>
+      </div>
+    </div>
+  </nav>
+  <!--End Navbar  -->
+  <div class="container mt-3">
+    <button type="button" class="btn cl-btn-pink" data-bs-toggle="modal" data-bs-target="#myModal">
+      Add User
+    </button>
+  </div>
+
+  <!-- The Modal -->
+  <div class="modal" id="myModal">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h4 class="modal-title">Add Contracts</h4>
+          <button type="button" class="btn-close cl-btn-pink" data-bs-dismiss="modal"></button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+          <form id="my-form" action="/send.php" method="POST">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Charter_Dated"> Charter Party Dated </label>
+                  <input class="form-control" id="Charte_Dated" name="Charter_Dated" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Charterer"> Charterer</label>
+                  <input class="form-control" id="Charterer" name="Charterer" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Manager"> Owner / Manager </label>
+                  <input class="form-control" id="Manager" name="Manager" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Charter_Form"> Charter Party Form</label>
+                  <input class="form-control" id="Charter_Form" name="Charter_Form" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Vessel"> Vessel </label>
+                  <input class="form-control" id="Vessel" name="Vessel" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Charter_Speed"> Charter Party Speed</label>
+                  <input class="form-control" id="Charter_Speed" name="Charter_Speed" required type="number" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Last_cargoes"> Last three cargoes</label>
+                  <input class="form-control" id="Last_cargoes" name="Last_cargoes" required type="number" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Cargo"> Cargo</label>
+                  <input class="form-control" id="Cargo" name="Cargo" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Quantity"> Quantity</label>
+                  <input class="form-control" id="Quantity" name="Quantity" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Heating"> Heating</label>
+                  <input class="form-control" id="Heating" name="Heating" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Load_Port">Load Port</label>
+                  <input class="form-control" id="Load_Port" name="Load_Port" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Laycan"> Laycan</label>
+                  <input class="form-control" id="Laycan" name="Laycan" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Discharge_Port"> Discharge Port</label>
+                  <input class="form-control" id="Discharge_Port" name="Discharge_Port" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Freight"> Freight</label>
+                  <input class="form-control" id="Freight" name="Freight" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Demurrage"> Demurrage</label>
+                  <input class="form-control" id="Demurrage" name="Demurrage" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="LAYTIME"> LAYTIME</label>
+                  <input class="form-control" id="LAYTIME" name="LAYTIME" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Cargo"> Cargo</label>
+                  <input class="form-control" id="Cargo" name="Cargo" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Payment_terms"> Payment terms</label>
+                  <input class="form-control" id="Payment_terms" name="Payment_terms" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Payment_to"> Payment to</label>
+                  <input class="form-control" id="Payment_to" name="Payment_to" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Brokers"> Brokers</label>
+                  <input class="form-control" id="Brokers" name="Brokers" required type="text" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="Commission"> Commission</label>
+                  <input class="form-control" id="Commission" name="Commission" required type="text" />
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <button class="btn cl-btn-blue mt-3 p-2" type="submit">
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn cl-btn-pink" data-bs-dismiss="modal">Close</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Start Table -->
+  <div class="container">
+    <table class="table border-primary table-bordered border-primary mt-5 table-striped table-hover">
+      <thead>
+        <tr>
+          <th scope="col">Charter Party Dated</th>
+          <th scope="col">Charterer</th>
+          <th scope="col">Vessel</th>
+          <th scope="col">Laycan</th>
+          <th scope="col">Actions</th>
+
+        </tr>
+      </thead>
+      <tbody class="tb-border">
+        <tr>
+          <td>data</td>
+          <td>data</td>
+          <td>data</td>
+          <td>data</td>
+          <td><button class="btn cl-btn-blue" type="submit">View</button>
+            <button class="btn cl-btn-pink" type="submit">Delete</button>
+          </td>
+        </tr>
+        <tr>
+          <td>data</td>
+          <td>data</td>
+          <td>data</td>
+          <td>data</td>
+          <td><button class="btn cl-btn-blue" type="submit">View</button>
+            <button class="btn cl-btn-pink" type="submit">Delete</button>
+          </td>
+        </tr>
+        <tr>
+          <td>data</td>
+          <td>data</td>
+          <td>data</td>
+          <td>data</td>
+          <td><button class="btn cl-btn-blue" type="submit">View</button>
+            <button class="btn cl-btn-pink" type="submit">Delete</button>
+          </td>
+        </tr>
+
+      </tbody>
+
+
+    </table>
+  </div>
+  <!-- End Table -->
+  <script src="js/bootstrap.bundle.min.js"></script>
+  <script src="js/all.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>

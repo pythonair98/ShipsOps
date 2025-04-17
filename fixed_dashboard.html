@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h3 mb-0 text-gray-800">Dashboard</h2>
+    <div>
+      <span class="text-gray-600">Today: {{ today|date:"F d, Y" }}</span>
+    </div>
+  </div>
+
+  <!-- Stats Cards Row -->
+  <div class="row g-4 mb-4">
+    <!-- Total Contracts Card -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-start border-primary border-4 shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Contracts</div>
+              <div class="h5 mb-0 fw-bold text-gray-800">{{ contract_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-file-contract fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Invoices Card -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-start border-success border-4 shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs fw-bold text-success text-uppercase mb-1">Total Invoices</div>
+              <div class="h5 mb-0 fw-bold text-gray-800">{{ invoice_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-file-invoice-dollar fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total USD Card -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-start border-info border-4 shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs fw-bold text-info text-uppercase mb-1">Total USD</div>
+              <div class="h5 mb-0 fw-bold text-gray-800">${{ total_usd|floatformat:2 }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total AED Card -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-start border-warning border-4 shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col">
+              <div class="text-xs fw-bold text-warning text-uppercase mb-1">Total AED</div>
+              <div class="h5 mb-0 fw-bold text-gray-800">{{ total_aed|floatformat:2 }} AED</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-coins fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contract Status & Charts Row -->
+  <div class="row g-4">
+    <!-- Contract Status -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 fw-bold text-primary">Contract Status</h6>
+        </div>
+        <div class="card-body">
+          <h5 class="small fw-bold">Pending <span class="float-end">{{ pending_contracts }}</span></h5>
+          <div class="progress mb-4" style="height: 20px;">
+            <div class="progress-bar bg-primary" role="progressbar"
+              style="width: {% widthratio pending_contracts contract_count 100 %}%">
+              {% widthratio pending_contracts contract_count 100 %}%
+            </div>
+          </div>
+          <h5 class="small fw-bold">Finance <span class="float-end">{{ finance_contracts }}</span></h5>
+          <div class="progress mb-4" style="height: 20px;">
+            <div class="progress-bar bg-success" role="progressbar"
+              style="width: {% widthratio finance_contracts contract_count 100 %}%">
+              {% widthratio finance_contracts contract_count 100 %}%
+            </div>
+          </div>
+          <h5 class="small fw-bold">Billed <span class="float-end">{{ billed_contracts }}</span></h5>
+          <div class="progress mb-4" style="height: 20px;">
+            <div class="progress-bar bg-info" role="progressbar"
+              style="width: {% widthratio billed_contracts contract_count 100 %}%">
+              {% widthratio billed_contracts contract_count 100 %}%
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-top">
+            <h6 class="fw-bold text-primary">Contract Distribution</h6>
+            <div class="chart-pie mt-3">
+              <canvas id="contractStatusChart" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Contracts Table -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 fw-bold text-primary">Recent Contracts</h6>
+          <a href="{% url 'contract_list' %}" class="btn btn-sm btn-primary shadow-sm">View All</a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Vessel</th>
+                  <th scope="col">Charterer</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for contract in recent_contracts %}
+                <tr>
+                  <td>{{ contract.created_at|date:"M d, Y" }}</td>
+                  <td>{{ contract.vessel }}</td>
+                  <td>{{ contract.charterer }}</td>
+                  <td>
+                    {% if contract.state == 0 %}
+                    <span class="badge bg-primary">Pending</span>
+                    {% elif contract.state == 1 %}
+                    <span class="badge bg-success">Finance</span>
+                    {% elif contract.state == 2 %}
+                    <span class="badge bg-info">Billed</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Unknown</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center py-4">No contracts found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly Data & Actions Row -->
+  <div class="row g-4">
+    <!-- Monthly Data -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 fw-bold text-primary">Monthly Overview</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Month</th>
+                  <th>Contracts</th>
+                  <th>Invoices</th>
+                  <th>Revenue (USD)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in monthly_data %}
+                <tr>
+                  <td>{{ item.month }}</td>
+                  <td>{{ item.contract_count }}</td>
+                  <td>{{ item.invoice_count }}</td>
+                  <td>${{ item.invoice_value|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center py-4">No monthly data found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 fw-bold text-primary">Quick Actions</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-3">
+            <a href="{% url 'contract_new' %}" class="btn btn-primary btn-lg">
+              <i class="fas fa-plus me-2"></i> New Contract
+            </a>
+            <a href="{% url 'invoice_new' %}" class="btn btn-success btn-lg">
+              <i class="fas fa-file-invoice me-2"></i> New Invoice
+            </a>
+            <a href="{% url 'contract_list' %}" class="btn btn-info btn-lg">
+              <i class="fas fa-list me-2"></i> View All Contracts
+            </a>
+            <a href="{% url 'invoice_list' %}" class="btn btn-warning btn-lg">
+              <i class="fas fa-list me-2"></i> View All Invoices
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+  // Simple contract status chart
+  const ctx = document.getElementById('contractStatusChart');
+  if (ctx) {
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['Pending', 'Finance', 'Billed'],
+        datasets: [{
+          data: [{{ pending_contracts }}, {{ finance_contracts }}, {{ billed_contracts }}],
+          backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc'],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %} 
