@@ -4,8 +4,10 @@ from .models import Contract, Invoice
 from .forms import ContractForm, InvoiceForm
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 
 
+@login_required
 def contract_list(request):
     """
     View to display a list of all contracts.
@@ -32,6 +34,7 @@ def contract_list(request):
     return render(request, 'contract_list.html', context)
 
 
+@login_required
 def invoice_list(request):
     """
     View to display a list of all invoices.
@@ -53,6 +56,7 @@ def invoice_list(request):
     return render(request, 'invoice_list.html', context)
 
 
+@login_required
 def contract_new(request):
     """
     View to create a new contract.
@@ -83,6 +87,7 @@ def contract_new(request):
     return render(request, 'contract_edit.html', context)
 
 
+@login_required
 def invoice_new(request):
     """
     View to create a new invoice.
@@ -133,6 +138,7 @@ def contract_list(request):
     return render(request, 'contract_list.html', context)
 
 
+@login_required
 def contract_edit(request, contract_id):
     """
     View to edit an existing contract.
@@ -167,6 +173,7 @@ def contract_edit(request, contract_id):
     return render(request, 'contract_edit.html', context)
 
 
+@login_required
 def contract_delete(request, contract_id):
     """
     View to delete an existing contract.
@@ -188,6 +195,7 @@ def contract_delete(request, contract_id):
     return redirect("contract_list")
 
 
+@login_required
 def contract_detail(request, contract_id):
     """
     View to display details of a specific contract.
@@ -240,6 +248,7 @@ def invoice_list(request):
     return render(request, 'invoice_list.html', context)
 
 
+@login_required
 def invoice_edit(request, invoice_id):
     """
     View to edit an existing invoice.
@@ -274,6 +283,7 @@ def invoice_edit(request, invoice_id):
     return render(request, 'invoice_edit.html', context)
 
 
+@login_required
 def invoice_delete(request, invoice_id):
     """
     View to delete an existing invoice.
@@ -295,6 +305,7 @@ def invoice_delete(request, invoice_id):
     return redirect("invoice_list")
 
 
+@login_required
 def invoice_detail(request, invoice_id):
     """
     View to display details of a specific invoice.
@@ -315,6 +326,7 @@ def invoice_detail(request, invoice_id):
     return render(request, 'invoice_detail.html', context)
 
 
+@login_required
 def contract_change_state(request, contract_id):
     """
     View to change the state of a contract.
@@ -341,6 +353,7 @@ def contract_change_state(request, contract_id):
     return redirect("contract_list")
 
 
+@login_required
 def dashboard_home(request):
     """
     Dashboard home page with analytics and overview of the system.

@@ -81,6 +81,7 @@ def logout_view(request):
     messages.success(request, "You have been logged out successfully")
     return redirect('login')
 
+@login_required
 def edit_user_view(request, user_id):
     """
     View to handle editing user information.
@@ -112,6 +113,7 @@ def edit_user_view(request, user_id):
     return render(request, 'edit_user.html', {'form': form, 'user_id': user_id})
 
 
+@login_required
 def delete_user_view(request, user_id):
     """
     View to handle user deletion.
@@ -133,6 +135,7 @@ def delete_user_view(request, user_id):
     return render(request, 'confirm_delete_user.html', {'user': user})
 
 
+@login_required
 def activate_user_view(request, user_id):
     """
     View to activate a user account.
@@ -151,6 +154,7 @@ def activate_user_view(request, user_id):
     return redirect('user_list')  # Assuming you have a user list view
 
 
+@login_required
 def deactivate_user_view(request, user_id):
     """
     View to deactivate a user account.
@@ -168,6 +172,7 @@ def deactivate_user_view(request, user_id):
     messages.success(request, f"User {user.username} has been deactivated successfully")
     return redirect('user_list')  # Assuming you have a user list view
 
+@login_required
 def reset_user_password_view(request, user_id):
     """
     View to reset a user's password.
@@ -194,6 +199,7 @@ def reset_user_password_view(request, user_id):
     
     return render(request, 'reset_user_password.html', {'user': user})
 
+@login_required
 def user_list_view(request):
     """
     View to display a list of all users.
