@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Vessel Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-2 text-gray-800">Vessel Management</h1>
+      <p class="mb-4">Manage and track all vessels in your fleet</p>
+    </div>
+    <div>
+      <a href="{% url 'vessel_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> Add New Vessel
+      </a>
+    </div>
+  </div>
+  
+  <!-- Filters Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Filter Vessels</h6>
+    </div>
+    <div class="card-body">
+      <form id="vessel-filter-form" method="GET" action="{% url 'vessel_list' %}">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label for="search" class="form-label">Search</label>
+            <input type="text" class="form-control" id="search" name="search" placeholder="Search by name, IMO or owner" value="{{ search_query }}">
+          </div>
+          <div class="col-md-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status">
+              <option value="">All Statuses</option>
+              {% for status in vessel_statuses %}
+              <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>
+                {{ status|title }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="type" class="form-label">Vessel Type</label>
+            <select class="form-select" id="type" name="type">
+              <option value="">All Types</option>
+              {% for type in vessel_types %}
+              <option value="{{ type }}" {% if type_filter == type %}selected{% endif %}>
+                {{ type }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="fas fa-filter me-1"></i> Filter
+            </button>
+            <a href="{% url 'vessel_list' %}" class="btn btn-secondary w-100">
+              <i class="fas fa-redo me-1"></i> Reset
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Status summary row -->
+  <div class="row mb-4">
+    <!-- Total Vessels Card -->
+    <div class="col-md-6">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Vessels</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_vessels }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-ship fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Operational Vessels Card -->
+    <div class="col-md-6">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Operational Vessels</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ operational_count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Vessels Table Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">Vessels</h6>
+      <div>
+        <span class="text-muted">Showing {{ vessels.start_index }} to {{ vessels.end_index }} of {{ vessels.paginator.count }} vessels</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover border-bottom">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>IMO Number</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Flag</th>
+              <th>Owner</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for vessel in vessels %}
+            <tr>
+              <td>{{ vessel.name }}</td>
+              <td>{{ vessel.imo_number }}</td>
+              <td>{{ vessel.vessel_type }}</td>
+              <td>
+                {% if vessel.status == 'operational' %}
+                <span class="badge bg-success text-white">Operational</span>
+                {% elif vessel.status == 'maintenance' %}
+                <span class="badge bg-warning text-dark">Maintenance</span>
+                {% elif vessel.status == 'repair' %}
+                <span class="badge bg-info text-white">Repair</span>
+                {% elif vessel.status == 'docked' %}
+                <span class="badge bg-secondary text-white">Docked</span>
+                {% else %}
+                <span class="badge bg-danger text-white">Unavailable</span>
+                {% endif %}
+              </td>
+              <td>{{ vessel.flag|default:"-" }}</td>
+              <td>{{ vessel.owner|default:"-" }}</td>
+              <td>
+                <div class="btn-group">
+                  <a href="{% url 'vessel_detail' vessel.id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                  <a href="{% url 'vessel_edit' vessel.id %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ vessel.id }}">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                
+                <!-- Delete Modal -->
+                <div class="modal fade" id="deleteModal{{ vessel.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ vessel.id }}" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel{{ vessel.id }}">Confirm Deletion</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        Are you sure you want to delete vessel <strong>{{ vessel.name }}</strong>? This action cannot be undone.
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form action="{% url 'vessel_delete' vessel.id %}" method="POST" style="display: inline;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4">No vessels found. <a href="{% url 'vessel_create' %}">Add your first vessel</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      {% if vessels.paginator.num_pages > 1 %}
+      <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Vessel pagination">
+          <ul class="pagination">
+            {% if vessels.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}" aria-label="First">
+                <span aria-hidden="true">&laquo;&laquo;</span>
+              </a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ vessels.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="First">
+                <span aria-hidden="true">&laquo;&laquo;</span>
+              </a>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            {% endif %}
+            
+            {% with ''|center:vessels.paginator.num_pages as range %}
+            {% for _ in range %}
+              {% with forloop.counter as i %}
+                {% if vessels.number == i %}
+                <li class="page-item active"><a class="page-link" href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}">{{ i }}</a></li>
+                {% elif i > vessels.number|add:"-3" and i < vessels.number|add:"3" %}
+                <li class="page-item"><a class="page-link" href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}">{{ i }}</a></li>
+                {% endif %}
+              {% endwith %}
+            {% endfor %}
+            {% endwith %}
+            
+            {% if vessels.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ vessels.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ vessels.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}" aria-label="Last">
+                <span aria-hidden="true">&raquo;&raquo;</span>
+              </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#" aria-label="Last">
+                <span aria-hidden="true">&raquo;&raquo;</span>
+              </a>
+            </li>
+            {% endif %}
+          </ul>
+        </nav>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %} 

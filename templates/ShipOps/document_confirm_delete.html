@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Confirm Delete Document{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Confirm Document Deletion</h6>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-4">
+            <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+            <h5 class="font-weight-bold">Delete Document</h5>
+            <p>Are you sure you want to delete the document "{{ document.title }}"?</p>
+            <p class="text-danger">This action cannot be undone.</p>
+          </div>
+          
+          <div class="mb-4">
+            <table class="table">
+              <tr>
+                <th style="width: 40%">Document Title:</th>
+                <td>{{ document.title }}</td>
+              </tr>
+              <tr>
+                <th>Document Type:</th>
+                <td>{{ document.get_document_type_display }}</td>
+              </tr>
+              <tr>
+                <th>Issue Date:</th>
+                <td>{{ document.issue_date|date:"M d, Y" }}</td>
+              </tr>
+              <tr>
+                <th>Vessel:</th>
+                <td>{{ document.vessel.name }}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div class="d-flex justify-content-center gap-2">
+            <a href="{% url 'vessel_detail' document.vessel.id %}" class="btn btn-secondary">
+              <i class="fas fa-times me-1"></i> Cancel
+            </a>
+            <form method="POST" action="{% url 'document_delete' document.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-1"></i> Delete Document
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if report %}Edit Report{% else %}New Report{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <a href="{% url 'report-list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Reports
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">{% if report %}Edit Report: {{ report.name }}{% else %}Create New Report{% endif %}</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" id="report-form">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="report-name">Report Name</label>
+                            <input type="text" class="form-control" id="report-name" name="name" value="{{ report.name|default:'' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="report-type">Report Type</label>
+                            <select class="form-control" id="report-type" name="report_type" required>
+                                <option value="">Select a report type</option>
+                                <option value="contract" {% if report and report.report_type == 'contract' %}selected{% endif %}>Contracts</option>
+                                <option value="invoice" {% if report and report.report_type == 'invoice' %}selected{% endif %}>Invoices</option>
+                                <option value="vessel" {% if report and report.report_type == 'vessel' %}selected{% endif %}>Vessels</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="start-date">Start Date</label>
+                            <input type="date" class="form-control" id="start-date" name="start_date" value="{{ report.start_date|date:'Y-m-d'|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="end-date">End Date</label>
+                            <input type="date" class="form-control" id="end-date" name="end_date" value="{{ report.end_date|date:'Y-m-d'|default:'' }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Filters</h6>
+                    </div>
+                    <div class="card-body" id="filters-container">
+                        <div class="filter-section" data-filter-type="contract" style="display: none;">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Contract Status</label>
+                                        <select class="form-control" name="filters[contract_status]" multiple>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Sent to Finance">Sent to Finance</option>
+                                            <option value="Billed">Billed</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Vessel</label>
+                                        <select class="form-control" name="filters[vessel]" multiple>
+                                            {% for vessel in vessels %}
+                                                <option value="{{ vessel.id }}">{{ vessel.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="filter-section" data-filter-type="invoice" style="display: none;">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Payment Status</label>
+                                        <select class="form-control" name="filters[payment_status]" multiple>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Paid">Paid</option>
+                                            <option value="Overdue">Overdue</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Currency</label>
+                                        <select class="form-control" name="filters[currency]">
+                                            <option value="">All Currencies</option>
+                                            <option value="USD">USD</option>
+                                            <option value="AED">AED</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="filter-section" data-filter-type="vessel" style="display: none;">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Vessel Type</label>
+                                        <select class="form-control" name="filters[vessel_type]" multiple>
+                                            {% for vessel_type in vessel_types %}
+                                                <option value="{{ vessel_type.id }}">{{ vessel_type.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Status</label>
+                                        <select class="form-control" name="filters[vessel_status]" multiple>
+                                            <option value="Active">Active</option>
+                                            <option value="In Maintenance">In Maintenance</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Visualization Options</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Chart Types</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="charts[bar]" id="bar-chart" {% if report and 'bar' in report.chart_types %}checked{% endif %}>
+                                        <label class="form-check-label" for="bar-chart">
+                                            Bar Chart
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="charts[pie]" id="pie-chart" {% if report and 'pie' in report.chart_types %}checked{% endif %}>
+                                        <label class="form-check-label" for="pie-chart">
+                                            Pie Chart
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="charts[line]" id="line-chart" {% if report and 'line' in report.chart_types %}checked{% endif %}>
+                                        <label class="form-check-label" for="line-chart">
+                                            Line Chart
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Display Options</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="display[summary]" id="show-summary" {% if report and report.show_summary %}checked{% endif %}>
+                                        <label class="form-check-label" for="show-summary">
+                                            Show Summary
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="display[table]" id="show-table" {% if report and report.show_table %}checked{% endif %} checked>
+                                        <label class="form-check-label" for="show-table">
+                                            Show Data Table
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <a href="{% url 'report-list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    $(document).ready(function() {
+        // Initialize select2 for multiple select boxes
+        $('select[multiple]').select2({
+            placeholder: "Select options"
+        });
+
+        // Show/hide filters based on report type selection
+        $('#report-type').change(function() {
+            const reportType = $(this).val();
+            $('.filter-section').hide();
+            if (reportType) {
+                $(`.filter-section[data-filter-type="${reportType}"]`).show();
+            }
+        }).trigger('change');
+
+        // Date validation
+        $('#end-date').change(function() {
+            const startDate = new Date($('#start-date').val());
+            const endDate = new Date($(this).val());
+            
+            if (endDate < startDate) {
+                alert('End date cannot be earlier than start date');
+                $(this).val('');
+            }
+        });
+
+        // Form validation
+        $('#report-form').submit(function(e) {
+            const reportName = $('#report-name').val().trim();
+            const reportType = $('#report-type').val();
+            
+            if (!reportName) {
+                e.preventDefault();
+                alert('Please enter a report name');
+                return false;
+            }
+            
+            if (!reportType) {
+                e.preventDefault();
+                alert('Please select a report type');
+                return false;
+            }
+            
+            // Check if at least one chart type is selected
+            const chartSelected = $('input[name^="charts["]:checked').length > 0;
+            if (!chartSelected) {
+                e.preventDefault();
+                alert('Please select at least one chart type');
+                return false;
+            }
+            
+            return true;
+        });
+
+        // Initialize filters with saved values if editing
+        const reportFiltersData = document.getElementById('report-filters-data');
+        if (reportFiltersData) {
+            try {
+                const savedFilters = JSON.parse(reportFiltersData.textContent);
+                for (const key in savedFilters) {
+                    const values = savedFilters[key];
+                    if (Array.isArray(values)) {
+                        // For multiple select
+                        $(`select[name="filters[${key}]"]`).val(values).trigger('change');
+                    } else {
+                        // For single select
+                        $(`select[name="filters[${key}]"]`).val(values);
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing filter data:', e);
+            }
+        }
+    });
+</script>
+
+{% if report and report.filters %}
+<script type="application/json" id="report-filters-data">
+{{ report.filters|safe }}
+</script>
+{% endif %}
+{% endblock %} 

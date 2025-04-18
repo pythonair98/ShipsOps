@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if template %}Edit Template{% else %}Create Report Template{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <a href="{% url 'report-list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Reports
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">{% if template %}Edit Template: {{ template.name }}{% else %}Create New Report Template{% endif %}</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" id="template-form">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="name">Template Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ template.name|default:'' }}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="report_type">Report Type</label>
+                            <select class="form-control" id="report_type" name="report_type" required>
+                                <option value="">Select a report type</option>
+                                {% for type_code, type_name in report_types %}
+                                <option value="{{ type_code }}" {% if template and template.report_type == type_code %}selected{% endif %}>{{ type_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="description">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ template.description|default:'' }}</textarea>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="is_public" name="is_public" {% if template and template.is_public %}checked{% endif %}>
+                    <label class="form-check-label" for="is_public">
+                        Make this template public (visible to all users)
+                    </label>
+                </div>
+
+                <!-- Contract Report Settings -->
+                <div id="contract-settings" class="report-type-settings" style="display: none;">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Contract Report Settings</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label>Fields to Include</label>
+                                <div class="row">
+                                    {% for field_code, field_name in contract_fields %}
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="contract_fields" value="{{ field_code }}" 
+                                                id="contract_field_{{ field_code }}"
+                                                {% if template and template.configuration.fields and field_code in template.configuration.fields %}checked{% endif %}>
+                                            <label class="form-check-label" for="contract_field_{{ field_code }}">
+                                                {{ field_name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Available Filters</label>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="contract_date_range" id="contract_date_range" 
+                                                {% if template and template.configuration.filters.date_range %}checked{% endif %}>
+                                            <label class="form-check-label" for="contract_date_range">
+                                                Date Range
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="contract_state" id="contract_state" 
+                                                {% if template and template.configuration.filters.state %}checked{% endif %}>
+                                            <label class="form-check-label" for="contract_state">
+                                                Contract State
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="contract_charterer" id="contract_charterer" 
+                                                {% if template and template.configuration.filters.charterer %}checked{% endif %}>
+                                            <label class="form-check-label" for="contract_charterer">
+                                                Charterer
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="contract_vessel" id="contract_vessel" 
+                                                {% if template and template.configuration.filters.vessel %}checked{% endif %}>
+                                            <label class="form-check-label" for="contract_vessel">
+                                                Vessel
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="contract_grouping">Grouping Option</label>
+                                <select class="form-control" id="contract_grouping" name="contract_grouping">
+                                    <option value="">No grouping</option>
+                                    <option value="charterer" {% if template and template.configuration.grouping == 'charterer' %}selected{% endif %}>Group by Charterer</option>
+                                    <option value="vessel" {% if template and template.configuration.grouping == 'vessel' %}selected{% endif %}>Group by Vessel</option>
+                                    <option value="state" {% if template and template.configuration.grouping == 'state' %}selected{% endif %}>Group by State</option>
+                                    <option value="month" {% if template and template.configuration.grouping == 'month' %}selected{% endif %}>Group by Month</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoice Report Settings -->
+                <div id="invoice-settings" class="report-type-settings" style="display: none;">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Invoice Report Settings</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label>Fields to Include</label>
+                                <div class="row">
+                                    {% for field_code, field_name in invoice_fields %}
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="invoice_fields" value="{{ field_code }}" 
+                                                id="invoice_field_{{ field_code }}"
+                                                {% if template and template.configuration.fields and field_code in template.configuration.fields %}checked{% endif %}>
+                                            <label class="form-check-label" for="invoice_field_{{ field_code }}">
+                                                {{ field_name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Available Filters</label>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="invoice_date_range" id="invoice_date_range" 
+                                                {% if template and template.configuration.filters.date_range %}checked{% endif %}>
+                                            <label class="form-check-label" for="invoice_date_range">
+                                                Date Range
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="invoice_status" id="invoice_status" 
+                                                {% if template and template.configuration.filters.status %}checked{% endif %}>
+                                            <label class="form-check-label" for="invoice_status">
+                                                Payment Status
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="invoice_currency" id="invoice_currency" 
+                                                {% if template and template.configuration.filters.currency %}checked{% endif %}>
+                                            <label class="form-check-label" for="invoice_currency">
+                                                Currency
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="invoice_contract" id="invoice_contract" 
+                                                {% if template and template.configuration.filters.contract %}checked{% endif %}>
+                                            <label class="form-check-label" for="invoice_contract">
+                                                Contract
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="invoice_grouping">Grouping Option</label>
+                                <select class="form-control" id="invoice_grouping" name="invoice_grouping">
+                                    <option value="">No grouping</option>
+                                    <option value="contract" {% if template and template.configuration.grouping == 'contract' %}selected{% endif %}>Group by Contract</option>
+                                    <option value="status" {% if template and template.configuration.grouping == 'status' %}selected{% endif %}>Group by Status</option>
+                                    <option value="currency" {% if template and template.configuration.grouping == 'currency' %}selected{% endif %}>Group by Currency</option>
+                                    <option value="month" {% if template and template.configuration.grouping == 'month' %}selected{% endif %}>Group by Month</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vessel Report Settings -->
+                <div id="vessel-settings" class="report-type-settings" style="display: none;">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Vessel Report Settings</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label>Fields to Include</label>
+                                <div class="row">
+                                    {% for field_code, field_name in vessel_fields %}
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="vessel_fields" value="{{ field_code }}" 
+                                                id="vessel_field_{{ field_code }}"
+                                                {% if template and template.configuration.fields and field_code in template.configuration.fields %}checked{% endif %}>
+                                            <label class="form-check-label" for="vessel_field_{{ field_code }}">
+                                                {{ field_name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Available Filters</label>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="vessel_status" id="vessel_status" 
+                                                {% if template and template.configuration.filters.status %}checked{% endif %}>
+                                            <label class="form-check-label" for="vessel_status">
+                                                Vessel Status
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="vessel_type" id="vessel_type" 
+                                                {% if template and template.configuration.filters.vessel_type %}checked{% endif %}>
+                                            <label class="form-check-label" for="vessel_type">
+                                                Vessel Type
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="vessel_flag" id="vessel_flag" 
+                                                {% if template and template.configuration.filters.flag %}checked{% endif %}>
+                                            <label class="form-check-label" for="vessel_flag">
+                                                Flag
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="vessel_grouping">Grouping Option</label>
+                                <select class="form-control" id="vessel_grouping" name="vessel_grouping">
+                                    <option value="">No grouping</option>
+                                    <option value="status" {% if template and template.configuration.grouping == 'status' %}selected{% endif %}>Group by Status</option>
+                                    <option value="type" {% if template and template.configuration.grouping == 'type' %}selected{% endif %}>Group by Type</option>
+                                    <option value="flag" {% if template and template.configuration.grouping == 'flag' %}selected{% endif %}>Group by Flag</option>
+                                    <option value="owner" {% if template and template.configuration.grouping == 'owner' %}selected{% endif %}>Group by Owner</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <a href="{% url 'report-list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    $(document).ready(function() {
+        // Show/hide settings based on report type
+        function updateSettingsVisibility() {
+            const reportType = $('#report_type').val();
+            $('.report-type-settings').hide();
+            
+            if (reportType === 'contract') {
+                $('#contract-settings').show();
+            } else if (reportType === 'invoice') {
+                $('#invoice-settings').show();
+            } else if (reportType === 'vessel') {
+                $('#vessel-settings').show();
+            }
+        }
+        
+        $('#report_type').change(updateSettingsVisibility);
+        
+        // Initialize on page load
+        updateSettingsVisibility();
+        
+        // Form validation
+        $('#template-form').submit(function(e) {
+            const reportType = $('#report_type').val();
+            let fieldsSelected = false;
+            
+            if (reportType === 'contract') {
+                fieldsSelected = $('input[name="contract_fields"]:checked').length > 0;
+            } else if (reportType === 'invoice') {
+                fieldsSelected = $('input[name="invoice_fields"]:checked').length > 0;
+            } else if (reportType === 'vessel') {
+                fieldsSelected = $('input[name="vessel_fields"]:checked').length > 0;
+            }
+            
+            if (!fieldsSelected) {
+                e.preventDefault();
+                alert('Please select at least one field to include in the report.');
+                return false;
+            }
+            
+            return true;
+        });
+    });
+</script>
+{% endblock %} 

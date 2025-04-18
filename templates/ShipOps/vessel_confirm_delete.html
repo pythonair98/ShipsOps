@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Confirm Delete Vessel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Confirm Vessel Deletion</h6>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-4">
+            <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+            <h5 class="font-weight-bold">Delete Vessel</h5>
+            <p>Are you sure you want to delete the vessel "{{ vessel.name }}"?</p>
+            <p class="text-danger fw-bold">This action cannot be undone!</p>
+            <p>All associated documents and maintenance records will be permanently deleted.</p>
+          </div>
+          
+          <div class="mb-4">
+            <table class="table">
+              <tr>
+                <th style="width: 40%">Vessel Name:</th>
+                <td>{{ vessel.name }}</td>
+              </tr>
+              <tr>
+                <th>IMO Number:</th>
+                <td>{{ vessel.imo_number }}</td>
+              </tr>
+              <tr>
+                <th>Vessel Type:</th>
+                <td>{{ vessel.vessel_type }}</td>
+              </tr>
+              <tr>
+                <th>Status:</th>
+                <td>
+                  {% if vessel.status == 'operational' %}
+                  <span class="badge bg-success text-white">Operational</span>
+                  {% elif vessel.status == 'maintenance' %}
+                  <span class="badge bg-warning text-dark">Under Maintenance</span>
+                  {% elif vessel.status == 'repair' %}
+                  <span class="badge bg-info text-white">Under Repair</span>
+                  {% elif vessel.status == 'docked' %}
+                  <span class="badge bg-secondary text-white">Docked</span>
+                  {% else %}
+                  <span class="badge bg-danger text-white">Unavailable</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>Owner:</th>
+                <td>{{ vessel.owner|default:"-" }}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div class="d-flex justify-content-center gap-2">
+            <a href="{% url 'vessel_detail' vessel.id %}" class="btn btn-secondary btn-lg">
+              <i class="fas fa-times me-1"></i> Cancel
+            </a>
+            <form method="POST" action="{% url 'vessel_delete' vessel.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-lg">
+                <i class="fas fa-trash me-1"></i> Delete Vessel
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

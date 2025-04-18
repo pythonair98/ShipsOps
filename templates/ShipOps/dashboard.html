@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 
 {% block title %}Dashboard{% endblock %}
 
@@ -26,87 +27,171 @@
     </div>
   </div>
 
-  <!-- Stats Cards Row -->
-  <div class="row g-4 mb-4">
-    <!-- Total Contracts Card -->
-    <div class="col-xl-3 col-md-6">
-      <div class="card border-start border-primary border-4 shadow h-100 py-2">
+  <!-- Contract Summary Card -->
+  <div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
         <div class="card-body">
-          <div class="row align-items-center">
-            <div class="col">
-              <div class="text-xs fw-bold text-primary text-uppercase mb-1">Total Contracts</div>
-              <div class="h5 mb-0 fw-bold text-gray-800">{{ all_contracts }}</div>
-              <div class="text-xs text-success mt-2">
-                <i class="fas fa-arrow-up me-1"></i>
-                <span id="contract-change">4.8%</span> from last month
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Contracts
               </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contract_count }}</div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-file-contract fa-2x text-primary opacity-25"></i>
+              <i class="fas fa-file-contract fa-2x text-gray-300"></i>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Total Invoices Card -->
-    <div class="col-xl-3 col-md-6">
-      <div class="card border-start border-success border-4 shadow h-100 py-2">
+    <!-- Invoice Summary Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
         <div class="card-body">
-          <div class="row align-items-center">
-            <div class="col">
-              <div class="text-xs fw-bold text-success text-uppercase mb-1">Total Invoices</div>
-              <div class="h5 mb-0 fw-bold text-gray-800">{{ all_invoices }}</div>
-              <div class="text-xs text-success mt-2">
-                <i class="fas fa-arrow-up me-1"></i>
-                <span id="invoice-change">3.2%</span> from last month
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Total Invoices
               </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ invoice_count }}</div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-file-invoice-dollar fa-2x text-success opacity-25"></i>
+              <i class="fas fa-file-invoice fa-2x text-gray-300"></i>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Total USD Card -->
-    <div class="col-xl-3 col-md-6">
-      <div class="card border-start border-info border-4 shadow h-100 py-2">
+    <!-- USD Summary Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
         <div class="card-body">
-          <div class="row align-items-center">
-            <div class="col">
-              <div class="text-xs fw-bold text-info text-uppercase mb-1">Total Revenue (USD)</div>
-              <div class="h5 mb-0 fw-bold text-gray-800">${{ total_usd|floatformat:2 }}</div>
-              <div class="text-xs text-success mt-2">
-                <i class="fas fa-arrow-up me-1"></i>
-                <span id="usd-change">8.3%</span> from last month
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Total USD
               </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_usd|floatformat:2 }}</div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-dollar-sign fa-2x text-info opacity-25"></i>
+              <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Total AED Card -->
-    <div class="col-xl-3 col-md-6">
-      <div class="card border-start border-warning border-4 shadow h-100 py-2">
+    <!-- AED Summary Card -->
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
         <div class="card-body">
-          <div class="row align-items-center">
-            <div class="col">
-              <div class="text-xs fw-bold text-warning text-uppercase mb-1">Total Revenue (AED)</div>
-              <div class="h5 mb-0 fw-bold text-gray-800">{{ total_aed|floatformat:2 }} AED</div>
-              <div class="text-xs text-success mt-2">
-                <i class="fas fa-arrow-up me-1"></i>
-                <span id="aed-change">7.5%</span> from last month
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Total AED
               </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">AED {{ total_aed|floatformat:2 }}</div>
             </div>
             <div class="col-auto">
-              <i class="fas fa-coins fa-2x text-warning opacity-25"></i>
+              <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contract Status Card -->
+  <div class="row">
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Contract Status</h6>
+        </div>
+        <div class="card-body">
+          {% for status, count in contract_status.items %}
+          <h4 class="small font-weight-bold">{{ status }} <span class="float-right">{{ count }}</span></h4>
+          <div class="progress mb-4">
+            <div class="progress-bar 
+              {% if status == 'Pending' %}bg-warning{% elif status == 'Finance' %}bg-info{% elif status == 'Billed' %}bg-primary{% else %}bg-success{% endif %}" 
+              role="progressbar" style="width: {{ status_percentages|get_item:status }}%"
+              aria-valuenow="{{ status_percentages|get_item:status }}" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Overview Card -->
+    <div class="col-lg-6 mb-4">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Monthly Overview</h6>
+        </div>
+        <div class="card-body">
+          <div class="chart-area">
+            <canvas id="myAreaChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Contracts -->
+  <div class="row">
+    <div class="col-lg-12 mb-4">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Recent Contracts</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Vessel</th>
+                  <th>Charterer</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for contract in recent_contracts %}
+                <tr>
+                  <td>{{ contract.id }}</td>
+                  <td>{{ contract.vessel }}</td>
+                  <td>{{ contract.charterer }}</td>
+                  <td>
+                    {% if contract.state == 0 %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                    {% elif contract.state == 1 %}
+                    <span class="badge bg-info">Finance</span>
+                    {% elif contract.state == 2 %}
+                    <span class="badge bg-primary">Billed</span>
+                    {% else %}
+                    <span class="badge bg-success">Completed</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ contract.created_at|date:"M d, Y" }}</td>
+                  <td>
+                    <a href="{% url 'contract_detail' contract.id %}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-eye"></i> View
+                    </a>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="text-center">No contracts found</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -388,6 +473,142 @@
             <a href="{% url 'invoice_list' %}" class="btn btn-warning btn-lg">
               <i class="fas fa-list me-2"></i> View All Invoices
             </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Vessel Management Row -->
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 fw-bold text-primary">Vessel Management</h6>
+          <a href="{% url 'vessel_list' %}" class="btn btn-sm btn-primary shadow-sm">View All Vessels</a>
+        </div>
+        <div class="card-body">
+          <div class="row mb-4">
+            <!-- Vessel Count Card -->
+            <div class="col-md-4">
+              <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Vessels</div>
+                      <div class="h5 mb-0 font-weight-bold text-gray-800">{{ vessel_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                      <i class="fas fa-ship fa-2x text-gray-300"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Operational Vessels Card -->
+            <div class="col-md-4">
+              <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Operational Vessels</div>
+                      <div class="h5 mb-0 font-weight-bold text-gray-800">{{ operational_vessels }}</div>
+                    </div>
+                    <div class="col-auto">
+                      <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Maintenance Vessels Card -->
+            <div class="col-md-4">
+              <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Under Maintenance</div>
+                      <div class="h5 mb-0 font-weight-bold text-gray-800">{{ maintenance_vessels }}</div>
+                    </div>
+                    <div class="col-auto">
+                      <i class="fas fa-tools fa-2x text-gray-300"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <!-- Upcoming Maintenance -->
+            <div class="col-lg-6">
+              <h6 class="font-weight-bold mb-3">Upcoming Maintenance</h6>
+              <div class="table-responsive">
+                <table class="table table-hover border-bottom">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Vessel</th>
+                      <th>Type</th>
+                      <th>Scheduled Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for maintenance in upcoming_maintenance %}
+                    <tr>
+                      <td><a href="{% url 'vessel_detail' maintenance.vessel.id %}">{{ maintenance.vessel.name }}</a></td>
+                      <td>{{ maintenance.maintenance_type }}</td>
+                      <td>{{ maintenance.scheduled_date|date:"M d, Y" }}</td>
+                      <td>
+                        {% if maintenance.status == 'scheduled' %}
+                        <span class="badge bg-primary">Scheduled</span>
+                        {% elif maintenance.status == 'in_progress' %}
+                        <span class="badge bg-warning text-dark">In Progress</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="4" class="text-center py-3">No upcoming maintenance scheduled</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <!-- Expiring Documents -->
+            <div class="col-lg-6">
+              <h6 class="font-weight-bold mb-3">Documents Expiring Soon</h6>
+              <div class="table-responsive">
+                <table class="table table-hover border-bottom">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Vessel</th>
+                      <th>Document</th>
+                      <th>Type</th>
+                      <th>Expiry Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for doc in expiring_documents %}
+                    <tr>
+                      <td><a href="{% url 'vessel_detail' doc.vessel.id %}">{{ doc.vessel.name }}</a></td>
+                      <td>{{ doc.title }}</td>
+                      <td>{{ doc.get_document_type_display }}</td>
+                      <td>{{ doc.expiry_date|date:"M d, Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="4" class="text-center py-3">No documents expiring soon</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>

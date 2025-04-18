@@ -39,7 +39,7 @@ def login_view(request):
     else:
         form = LoginForm()
         
-    return render(request, 'login.html', {'form': form})
+    return render(request, 'ShipsAuth/login.html', {'form': form})
 
 def register_view(request):
     """
@@ -65,7 +65,7 @@ def register_view(request):
             messages.error(request, "Invalid form submission")
     else:
         form = RegisterForm()
-    return render(request, 'signup.html', {'form': form})
+    return render(request, 'ShipsAuth/signup.html', {'form': form})
 
 
 def logout_view(request):
@@ -107,7 +107,7 @@ def edit_user_view(request, user_id):
     else:
         form = RegisterForm(instance=user)
     
-    return render(request, 'edit_user.html', {'form': form, 'user_id': user_id})
+    return render(request, 'ShipsAuth/edit_user.html', {'form': form, 'user_id': user_id})
 
 
 @login_required
@@ -129,7 +129,7 @@ def delete_user_view(request, user_id):
         messages.success(request, "User deleted successfully")
         return redirect('/users/')  # Use absolute URL path
     
-    return render(request, 'confirm_delete_user.html', {'user': user})
+    return render(request, 'ShipsAuth/confirm_delete_user.html', {'user': user})
 
 
 @login_required
@@ -194,7 +194,7 @@ def reset_user_password_view(request, user_id):
         else:
             messages.error(request, "Passwords do not match")
     
-    return render(request, 'reset_user_password.html', {'user': user})
+    return render(request, 'ShipsAuth/reset_user_password.html', {'user': user})
 
 @login_required
 def user_list_view(request):
@@ -215,7 +215,7 @@ def user_list_view(request):
         'page_title': 'User Management'
     }
     
-    return render(request, 'users.html', context)
+    return render(request, 'ShipsAuth/users.html', context)
 
 @login_required
 def user_list(request):
@@ -291,4 +291,4 @@ def user_list(request):
         'permission_filter': permission_filter,
     }
     
-    return render(request, 'user_list.html', context)
+    return render(request, 'ShipsAuth/user_list.html', context)

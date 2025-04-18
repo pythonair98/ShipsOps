@@ -64,8 +64,11 @@ ROOT_URLCONF = 'ShipsManagment.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [
+            BASE_DIR / 'templates',
+            BASE_DIR / 'templates' / 'ShipsAuth',
+            BASE_DIR / 'templates' / 'ShipOps',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -185,3 +185,185 @@ class Invoice(models.Model):
         return f"Invoice #{self.id} for Contract #{self.contract.id}"
 
 
+# Vessel Management Models
+class Vessel(models.Model):
+    name = models.CharField(max_length=100)
+    imo_number = models.CharField(max_length=20, unique=True, verbose_name="IMO Number")
+    vessel_type = models.CharField(max_length=50)
+    built_year = models.IntegerField(null=True, blank=True)
+    flag = models.CharField(max_length=50, blank=True)
+    gross_tonnage = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    net_tonnage = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    length_overall = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name="Length Overall (m)")
+    breadth = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    draft = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=[
+        ('operational', 'Operational'),
+        ('maintenance', 'Under Maintenance'),
+        ('repair', 'Under Repair'),
+        ('docked', 'Docked'),
+        ('unavailable', 'Unavailable')
+    ], default='operational')
+    owner = models.CharField(max_length=100, blank=True)
+    operator = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.name} ({self.imo_number})"
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Vessel'
+        verbose_name_plural = 'Vessels'
+
+class VesselDocument(models.Model):
+    vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE, related_name='documents')
+    document_type = models.CharField(max_length=50, choices=[
+        ('registration', 'Registration Certificate'),
+        ('insurance', 'Insurance'),
+        ('classification', 'Classification Certificate'),
+        ('safety', 'Safety Certificate'),
+        ('inspection', 'Inspection Report'),
+        ('other', 'Other')
+    ])
+    title = models.CharField(max_length=100)
+    file = models.FileField(upload_to='vessel_documents/')
+    issue_date = models.DateField()
+    expiry_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.vessel.name} - {self.get_document_type_display()}"
+
+class VesselMaintenance(models.Model):
+    vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE, related_name='maintenance_records')
+    maintenance_type = models.CharField(max_length=50)
+    description = models.TextField()
+    scheduled_date = models.DateField()
+    completion_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=[
+        ('scheduled', 'Scheduled'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('delayed', 'Delayed'),
+        ('cancelled', 'Cancelled')
+    ], default='scheduled')
+    cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    vendor = models.CharField(max_length=100, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.vessel.name} - {self.maintenance_type} ({self.scheduled_date})"
+    
+    class Meta:
+        ordering = ['-scheduled_date']
+
+# Advanced Reporting & Analytics
+class ReportTemplate(models.Model):
+    """Model for storing report templates"""
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    report_type = models.CharField(max_length=50, choices=[
+        ('contract', 'Contract Report'),
+        ('invoice', 'Invoice Report'),
+        ('vessel', 'Vessel Report'),
+        ('maintenance', 'Maintenance Report'),
+        ('financial', 'Financial Report'),
+        ('custom', 'Custom Report')
+    ])
+    created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='created_templates')
+    is_public = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Report configuration stored as JSON
+    configuration = models.JSONField(default=dict)
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_report_type_display()})"
+    
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Report Template'
+        verbose_name_plural = 'Report Templates'
+
+class SavedReport(models.Model):
+    """Model for storing generated reports"""
+    name = models.CharField(max_length=100)
+    template = models.ForeignKey(ReportTemplate, on_delete=models.SET_NULL, null=True, blank=True, related_name='saved_reports')
+    description = models.TextField(blank=True)
+    report_type = models.CharField(max_length=50, choices=[
+        ('contract', 'Contract Report'),
+        ('invoice', 'Invoice Report'),
+        ('vessel', 'Vessel Report'),
+        ('maintenance', 'Maintenance Report'),
+        ('financial', 'Financial Report'),
+        ('custom', 'Custom Report')
+    ])
+    created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='saved_reports')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Parameters used to generate the report
+    parameters = models.JSONField(default=dict)
+    
+    # Report data stored as JSON
+    data = models.JSONField(default=dict)
+    
+    # Report file (PDF, Excel, etc.)
+    file = models.FileField(upload_to='reports/', null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.name} - {self.created_at.strftime('%Y-%m-%d')}"
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Saved Report'
+        verbose_name_plural = 'Saved Reports'
+
+class Dashboard(models.Model):
+    """Model for custom dashboards"""
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    created_by = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='dashboards')
+    is_public = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Dashboard widgets configuration stored as JSON
+    configuration = models.JSONField(default=dict)
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Dashboard'
+        verbose_name_plural = 'Dashboards'
+
+class AnalyticsLog(models.Model):
+    """Model for tracking analytics usage"""
+    user = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=50, choices=[
+        ('view_report', 'View Report'),
+        ('generate_report', 'Generate Report'),
+        ('save_report', 'Save Report'),
+        ('view_dashboard', 'View Dashboard'),
+        ('create_dashboard', 'Create Dashboard'),
+        ('update_dashboard', 'Update Dashboard')
+    ])
+    timestamp = models.DateTimeField(auto_now_add=True)
+    details = models.JSONField(default=dict)
+    
+    def __str__(self):
+        return f"{self.user} - {self.action} - {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+    
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Analytics Log'
+        verbose_name_plural = 'Analytics Logs'
+
+

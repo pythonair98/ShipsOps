@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_edit %}Edit Vessel{% else %}Add New Vessel{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-flex align-items-center mb-4">
+    <a href="{% if is_edit %}{% url 'vessel_detail' vessel.id %}{% else %}{% url 'vessel_list' %}{% endif %}" class="btn btn-outline-primary me-3">
+      <i class="fas fa-arrow-left"></i> {% if is_edit %}Back to Vessel{% else %}Back to Vessels{% endif %}
+    </a>
+    <h1 class="h3 mb-0 text-gray-800">{% if is_edit %}Edit Vessel: {{ vessel.name }}{% else %}Add New Vessel{% endif %}</h1>
+  </div>
+  
+  <!-- Vessel Form Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">{% if is_edit %}Edit{% else %}Add{% endif %} Vessel Details</h6>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{% if is_edit %}{% url 'vessel_edit' vessel.id %}{% else %}{% url 'vessel_create' %}{% endif %}">
+        {% csrf_token %}
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="name" class="form-label">Vessel Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="name" name="name" value="{% if vessel %}{{ vessel.name }}{% endif %}" required>
+          </div>
+          <div class="col-md-6">
+            <label for="imo_number" class="form-label">IMO Number <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="imo_number" name="imo_number" value="{% if vessel %}{{ vessel.imo_number }}{% endif %}" required>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="vessel_type" class="form-label">Vessel Type <span class="text-danger">*</span></label>
+            <select class="form-select" id="vessel_type" name="vessel_type" required>
+              <option value="">Select Vessel Type</option>
+              {% if vessel_types %}
+                {% for type in vessel_types %}
+                <option value="{{ type }}" {% if vessel and vessel.vessel_type == type %}selected{% endif %}>{{ type }}</option>
+                {% endfor %}
+              {% endif %}
+              <option value="Bulk Carrier" {% if vessel and vessel.vessel_type == 'Bulk Carrier' %}selected{% endif %}>Bulk Carrier</option>
+              <option value="Container Ship" {% if vessel and vessel.vessel_type == 'Container Ship' %}selected{% endif %}>Container Ship</option>
+              <option value="Tanker" {% if vessel and vessel.vessel_type == 'Tanker' %}selected{% endif %}>Tanker</option>
+              <option value="Gas Carrier" {% if vessel and vessel.vessel_type == 'Gas Carrier' %}selected{% endif %}>Gas Carrier</option>
+              <option value="Passenger Ship" {% if vessel and vessel.vessel_type == 'Passenger Ship' %}selected{% endif %}>Passenger Ship</option>
+              <option value="Ro-Ro" {% if vessel and vessel.vessel_type == 'Ro-Ro' %}selected{% endif %}>Ro-Ro</option>
+              <option value="General Cargo" {% if vessel and vessel.vessel_type == 'General Cargo' %}selected{% endif %}>General Cargo</option>
+              <option value="Other" {% if vessel and vessel.vessel_type == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label for="built_year" class="form-label">Built Year</label>
+            <input type="number" class="form-control" id="built_year" name="built_year" min="1900" max="{{ today.year }}" value="{% if vessel and vessel.built_year %}{{ vessel.built_year }}{% endif %}">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="flag" class="form-label">Flag</label>
+            <input type="text" class="form-control" id="flag" name="flag" value="{% if vessel %}{{ vessel.flag }}{% endif %}">
+          </div>
+          <div class="col-md-6">
+            <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+            <select class="form-select" id="status" name="status" required>
+              {% for status_code, status_name in vessel_statuses %}
+              <option value="{{ status_code }}" {% if vessel and vessel.status == status_code %}selected{% endif %}>{{ status_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="gross_tonnage" class="form-label">Gross Tonnage</label>
+            <input type="number" class="form-control" id="gross_tonnage" name="gross_tonnage" step="0.01" min="0" value="{% if vessel and vessel.gross_tonnage %}{{ vessel.gross_tonnage }}{% endif %}">
+          </div>
+          <div class="col-md-6">
+            <label for="net_tonnage" class="form-label">Net Tonnage</label>
+            <input type="number" class="form-control" id="net_tonnage" name="net_tonnage" step="0.01" min="0" value="{% if vessel and vessel.net_tonnage %}{{ vessel.net_tonnage }}{% endif %}">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label for="length_overall" class="form-label">Length Overall (m)</label>
+            <input type="number" class="form-control" id="length_overall" name="length_overall" step="0.01" min="0" value="{% if vessel and vessel.length_overall %}{{ vessel.length_overall }}{% endif %}">
+          </div>
+          <div class="col-md-4">
+            <label for="breadth" class="form-label">Breadth (m)</label>
+            <input type="number" class="form-control" id="breadth" name="breadth" step="0.01" min="0" value="{% if vessel and vessel.breadth %}{{ vessel.breadth }}{% endif %}">
+          </div>
+          <div class="col-md-4">
+            <label for="draft" class="form-label">Draft (m)</label>
+            <input type="number" class="form-control" id="draft" name="draft" step="0.01" min="0" value="{% if vessel and vessel.draft %}{{ vessel.draft }}{% endif %}">
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="owner" class="form-label">Owner</label>
+            <input type="text" class="form-control" id="owner" name="owner" value="{% if vessel %}{{ vessel.owner }}{% endif %}">
+          </div>
+          <div class="col-md-6">
+            <label for="operator" class="form-label">Operator</label>
+            <input type="text" class="form-control" id="operator" name="operator" value="{% if vessel %}{{ vessel.operator }}{% endif %}">
+          </div>
+        </div>
+        
+        <div class="mt-4 border-top pt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i> {% if is_edit %}Update{% else %}Save{% endif %} Vessel
+          </button>
+          <a href="{% if is_edit %}{% url 'vessel_detail' vessel.id %}{% else %}{% url 'vessel_list' %}{% endif %}" class="btn btn-secondary">
+            <i class="fas fa-times me-1"></i> Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} 

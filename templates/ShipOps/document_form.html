@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Add Document - {{ vessel.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-flex align-items-center mb-4">
+    <a href="{% url 'vessel_detail' vessel.id %}" class="btn btn-outline-primary me-3">
+      <i class="fas fa-arrow-left"></i> Back to Vessel
+    </a>
+    <h1 class="h3 mb-0 text-gray-800">Add Document for {{ vessel.name }}</h1>
+  </div>
+  
+  <!-- Document Form Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Document Details</h6>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{% url 'document_create' vessel.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="title" class="form-label">Document Title <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="title" name="title" required>
+          </div>
+          <div class="col-md-6">
+            <label for="document_type" class="form-label">Document Type <span class="text-danger">*</span></label>
+            <select class="form-select" id="document_type" name="document_type" required>
+              <option value="">Select Document Type</option>
+              {% for type_code, type_name in document_types %}
+              <option value="{{ type_code }}">{{ type_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="issue_date" class="form-label">Issue Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="issue_date" name="issue_date" required>
+          </div>
+          <div class="col-md-6">
+            <label for="expiry_date" class="form-label">Expiry Date</label>
+            <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+            <small class="form-text text-muted">Leave blank if the document doesn't expire</small>
+          </div>
+        </div>
+        
+        <div class="mb-3">
+          <label for="file" class="form-label">Document File <span class="text-danger">*</span></label>
+          <input type="file" class="form-control" id="file" name="file" required>
+          <small class="form-text text-muted">Supported formats: PDF, DOC, DOCX, JPG, PNG (Max size: 10MB)</small>
+        </div>
+        
+        <div class="mb-3">
+          <label for="notes" class="form-label">Notes</label>
+          <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+        </div>
+        
+        <div class="mt-4 border-top pt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i> Save Document
+          </button>
+          <a href="{% url 'vessel_detail' vessel.id %}" class="btn btn-secondary">
+            <i class="fas fa-times me-1"></i> Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Confirm Delete Maintenance Record{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Confirm Maintenance Record Deletion</h6>
+        </div>
+        <div class="card-body">
+          <div class="text-center mb-4">
+            <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+            <h5 class="font-weight-bold">Delete Maintenance Record</h5>
+            <p>Are you sure you want to delete this maintenance record?</p>
+            <p class="text-danger">This action cannot be undone.</p>
+          </div>
+          
+          <div class="mb-4">
+            <table class="table">
+              <tr>
+                <th style="width: 40%">Maintenance Type:</th>
+                <td>{{ maintenance.maintenance_type }}</td>
+              </tr>
+              <tr>
+                <th>Scheduled Date:</th>
+                <td>{{ maintenance.scheduled_date|date:"M d, Y" }}</td>
+              </tr>
+              <tr>
+                <th>Status:</th>
+                <td>
+                  {% if maintenance.status == 'scheduled' %}
+                  <span class="badge bg-primary">Scheduled</span>
+                  {% elif maintenance.status == 'in_progress' %}
+                  <span class="badge bg-warning text-dark">In Progress</span>
+                  {% elif maintenance.status == 'completed' %}
+                  <span class="badge bg-success">Completed</span>
+                  {% elif maintenance.status == 'delayed' %}
+                  <span class="badge bg-info">Delayed</span>
+                  {% else %}
+                  <span class="badge bg-danger">Cancelled</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>Vessel:</th>
+                <td>{{ maintenance.vessel.name }}</td>
+              </tr>
+              <tr>
+                <th>Description:</th>
+                <td>{{ maintenance.description|truncatechars:100 }}</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div class="d-flex justify-content-center gap-2">
+            <a href="{% url 'vessel_detail' maintenance.vessel.id %}" class="btn btn-secondary">
+              <i class="fas fa-times me-1"></i> Cancel
+            </a>
+            <form method="POST" action="{% url 'maintenance_delete' maintenance.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-1"></i> Delete Maintenance Record
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

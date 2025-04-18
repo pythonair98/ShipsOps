@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Generate Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Page Heading -->
+  <div class="d-flex align-items-center mb-4">
+    <a href="{% url 'report_list' %}" class="btn btn-outline-primary me-3">
+      <i class="fas fa-arrow-left"></i> Back to Reports
+    </a>
+    <h1 class="h3 mb-0 text-gray-800">Generate Report</h1>
+  </div>
+  
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        {% if template %}
+        Using Template: {{ template.name }}
+        {% else %}
+        Custom Report
+        {% endif %}
+      </h6>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{% if template %}{% url 'report_generate' template.id %}{% else %}{% url 'report_generate_custom' %}{% endif %}">
+        {% csrf_token %}
+        
+        {% if not template %}
+        <!-- Report Type Selection (for custom reports only) -->
+        <div class="mb-3">
+          <label for="report_type" class="form-label">Report Type <span class="text-danger">*</span></label>
+          <select class="form-select" id="report_type" name="report_type" required>
+            <option value="">Select Report Type</option>
+            {% for type_code, type_name in report_types %}
+            <option value="{{ type_code }}">{{ type_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        
+        <!-- Common Fields -->
+        <div class="mb-3">
+          <label for="report_name" class="form-label">Report Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="report_name" name="report_name" 
+            placeholder="Enter a name for this report"
+            value="{% if template %}{{ template.name }} - {{ current_date }}{% endif %}" required>
+        </div>
+        
+        <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="save_report" name="save_report" checked>
+            <label class="form-check-label" for="save_report">
+              Save this report for future reference
+            </label>
+          </div>
+        </div>
+        
+        <!-- Contract Report Filters -->
+        <div id="contract_filters" class="report-filters" {% if template and template.report_type != 'contract' %}style="display: none;"{% endif %}>
+          <h5 class="border-bottom pb-2 mt-4">Contract Report Filters</h5>
+          
+          {% if template.contract_date_range|default:True %}
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="contract_date_from" class="form-label">Date From</label>
+              <input type="date" class="form-control" id="contract_date_from" name="contract_date_from">
+            </div>
+            <div class="col-md-6">
+              <label for="contract_date_to" class="form-label">Date To</label>
+              <input type="date" class="form-control" id="contract_date_to" name="contract_date_to">
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if template.contract_state|default:True %}
+          <div class="mb-3">
+            <label for="contract_state" class="form-label">Contract State</label>
+            <select class="form-select" id="contract_state" name="contract_state">
+              <option value="">All States</option>
+              {% for state_code, state_name in contract_states %}
+              <option value="{{ state_code }}">{{ state_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          
+          {% if template.contract_charterer|default:True %}
+          <div class="mb-3">
+            <label for="contract_charterer" class="form-label">Charterer</label>
+            <select class="form-select" id="contract_charterer" name="contract_charterer">
+              <option value="">All Charterers</option>
+              {% for charterer in charterers %}
+              <option value="{{ charterer.id }}">{{ charterer.company_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          
+          {% if template.contract_vessel|default:True %}
+          <div class="mb-3">
+            <label for="contract_vessel" class="form-label">Vessel</label>
+            <select class="form-select" id="contract_vessel" name="contract_vessel">
+              <option value="">All Vessels</option>
+              {% for vessel in vessels %}
+              <option value="{{ vessel.id }}">{{ vessel.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+        </div>
+        
+        <!-- Invoice Report Filters -->
+        <div id="invoice_filters" class="report-filters" {% if template and template.report_type != 'invoice' %}style="display: none;"{% endif %}>
+          <h5 class="border-bottom pb-2 mt-4">Invoice Report Filters</h5>
+          
+          {% if template.invoice_date_range|default:True %}
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="invoice_date_from" class="form-label">Date From</label>
+              <input type="date" class="form-control" id="invoice_date_from" name="invoice_date_from">
+            </div>
+            <div class="col-md-6">
+              <label for="invoice_date_to" class="form-label">Date To</label>
+              <input type="date" class="form-control" id="invoice_date_to" name="invoice_date_to">
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if template.invoice_status|default:True %}
+          <div class="mb-3">
+            <label for="invoice_status" class="form-label">Invoice Status</label>
+            <select class="form-select" id="invoice_status" name="invoice_status">
+              <option value="">All Statuses</option>
+              {% for status_code, status_name in invoice_statuses %}
+              <option value="{{ status_code }}">{{ status_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          
+          {% if template.invoice_currency|default:True %}
+          <div class="mb-3">
+            <label for="invoice_currency" class="form-label">Currency</label>
+            <select class="form-select" id="invoice_currency" name="invoice_currency">
+              <option value="">All Currencies</option>
+              <option value="USD">USD</option>
+              <option value="AED">AED</option>
+            </select>
+          </div>
+          {% endif %}
+          
+          {% if template.invoice_contract|default:True %}
+          <div class="mb-3">
+            <label for="invoice_contract" class="form-label">Contract</label>
+            <select class="form-select" id="invoice_contract" name="invoice_contract">
+              <option value="">All Contracts</option>
+              {% for contract in contracts %}
+              <option value="{{ contract.id }}">{{ contract.contract_id }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+        </div>
+        
+        <!-- Vessel Report Filters -->
+        <div id="vessel_filters" class="report-filters" {% if template and template.report_type != 'vessel' %}style="display: none;"{% endif %}>
+          <h5 class="border-bottom pb-2 mt-4">Vessel Report Filters</h5>
+          
+          {% if template.vessel_status|default:True %}
+          <div class="mb-3">
+            <label for="vessel_status" class="form-label">Vessel Status</label>
+            <select class="form-select" id="vessel_status" name="vessel_status">
+              <option value="">All Statuses</option>
+              {% for status_code, status_name in vessel_statuses %}
+              <option value="{{ status_code }}">{{ status_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          
+          {% if template.vessel_type|default:True %}
+          <div class="mb-3">
+            <label for="vessel_type" class="form-label">Vessel Type</label>
+            <select class="form-select" id="vessel_type" name="vessel_type">
+              <option value="">All Types</option>
+              {% for type_code, type_name in vessel_types %}
+              <option value="{{ type_code }}">{{ type_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          
+          {% if template.vessel_flag|default:True %}
+          <div class="mb-3">
+            <label for="vessel_flag" class="form-label">Flag</label>
+            <select class="form-select" id="vessel_flag" name="vessel_flag">
+              <option value="">All Flags</option>
+              {% for flag in vessel_flags %}
+              <option value="{{ flag }}">{{ flag }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+        </div>
+        
+        <!-- Financial Report Filters -->
+        <div id="financial_filters" class="report-filters" {% if template and template.report_type != 'financial' %}style="display: none;"{% endif %}>
+          <h5 class="border-bottom pb-2 mt-4">Financial Report Filters</h5>
+          
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="financial_date_from" class="form-label">Date From</label>
+              <input type="date" class="form-control" id="financial_date_from" name="financial_date_from">
+            </div>
+            <div class="col-md-6">
+              <label for="financial_date_to" class="form-label">Date To</label>
+              <input type="date" class="form-control" id="financial_date_to" name="financial_date_to">
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="financial_currency" class="form-label">Currency</label>
+            <select class="form-select" id="financial_currency" name="financial_currency">
+              <option value="USD" {% if template.currency == "USD" %}selected{% endif %}>USD</option>
+              <option value="AED" {% if template.currency == "AED" %}selected{% endif %}>AED</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="mt-4 border-top pt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-file-alt me-1"></i> Generate Report
+          </button>
+          <a href="{% url 'report_list' %}" class="btn btn-secondary">
+            <i class="fas fa-times me-1"></i> Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    {% if not template %}
+    // Show/hide report filter sections based on report type (for custom reports)
+    const reportTypeSelect = document.getElementById('report_type');
+    const filterSections = document.querySelectorAll('.report-filters');
+    
+    reportTypeSelect.addEventListener('change', function() {
+      // Hide all filter sections
+      filterSections.forEach(section => {
+        section.style.display = 'none';
+      });
+      
+      // Show the selected filter section
+      const selectedType = this.value;
+      if (selectedType) {
+        const filterSection = document.getElementById(selectedType + '_filters');
+        if (filterSection) {
+          filterSection.style.display = 'block';
+        }
+      }
+    });
+    {% endif %}
+    
+    // Set default dates
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    const formatDate = (date) => {
+      return date.toISOString().split('T')[0];
+    };
+    
+    // Set default dates for all date inputs
+    const dateFromInputs = document.querySelectorAll('[id$="_date_from"]');
+    const dateToInputs = document.querySelectorAll('[id$="_date_to"]');
+    
+    dateFromInputs.forEach(input => {
+      input.value = formatDate(firstDayOfMonth);
+    });
+    
+    dateToInputs.forEach(input => {
+      input.value = formatDate(today);
+    });
+  });
+</script>
+{% endblock %} 
