@@ -280,23 +280,27 @@ class Command(BaseCommand):
             # Create ShipsAuth profile for superuser
             admin_occupation = Occupation.objects.filter(power=1).first()
             if admin_occupation:
-                Profile.objects.create(
+                Profile.objects.get_or_create(
                     user_obj=superuser,
-                    occupation=admin_occupation,
-                    token='admin_token',
-                    profile_image='admin.jpg'
+                    defaults={
+                        'occupation': admin_occupation,
+                        'token': 'admin_token',
+                        'profile_image': 'admin.jpg'
+                    }
                 )
             
             # Create ShipOps profile for superuser
             admin_role = UserRole.objects.get(name='admin')
-            UserProfile.objects.create(
+            UserProfile.objects.get_or_create(
                 user=superuser,
-                role=admin_role,
-                department='Management',
-                can_view_contracts=True,
-                can_edit_contracts=True,
-                can_view_invoices=True,
-                can_edit_invoices=True
+                defaults={
+                    'role': admin_role,
+                    'department': 'Management',
+                    'can_view_contracts': True,
+                    'can_edit_contracts': True,
+                    'can_view_invoices': True,
+                    'can_edit_invoices': True
+                }
             )
             
             self.stdout.write(self.style.SUCCESS('Created superuser: admin'))
@@ -331,11 +335,13 @@ class Command(BaseCommand):
             
             # Create ShipsAuth profile
             occupation = random.choice(occupations)
-            Profile.objects.create(
+            Profile.objects.get_or_create(
                 user_obj=user,
-                occupation=occupation,
-                token=f'token_{username}',
-                profile_image=f'profile_{i+1}.jpg' if random.random() < 0.7 else None
+                defaults={
+                    'occupation': occupation,
+                    'token': f'token_{username}',
+                    'profile_image': f'profile_{i+1}.jpg' if random.random() < 0.7 else None
+                }
             )
             
             # Match role to occupation
@@ -360,15 +366,17 @@ class Command(BaseCommand):
             else:
                 department = random.choice(departments)
             
-            # Create ShipOps profile with permissions based on role
-            UserProfile.objects.create(
+            # Create ShipOps profile with permissions based on role - only if it doesn't exist already
+            UserProfile.objects.get_or_create(
                 user=user,
-                role=role,
-                department=department,
-                can_view_contracts=role.name in ['admin', 'manager', 'finance', 'operations', 'viewer'],
-                can_edit_contracts=role.name in ['admin', 'manager', 'operations'],
-                can_view_invoices=role.name in ['admin', 'manager', 'finance', 'operations'],
-                can_edit_invoices=role.name in ['admin', 'manager', 'finance']
+                defaults={
+                    'role': role,
+                    'department': department,
+                    'can_view_contracts': role.name in ['admin', 'manager', 'finance', 'operations', 'viewer'],
+                    'can_edit_contracts': role.name in ['admin', 'manager', 'operations'],
+                    'can_view_invoices': role.name in ['admin', 'manager', 'finance', 'operations'],
+                    'can_edit_invoices': role.name in ['admin', 'manager', 'finance']
+                }
             )
             
             self.stdout.write(f'Created user: {username}')
