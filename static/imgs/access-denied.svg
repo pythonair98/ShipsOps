@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <style>
+    .st0{fill:#ffeeee;} /* Background */
+    .st1{fill:#dc3545;} /* Danger color */
+    .st2{fill:#333;} /* Dark elements */
+    .st3{fill:#fff;} /* White elements */
+  </style>
+  <rect class="st0" x="0" y="0" width="300" height="200" rx="10"/>
+  <g transform="translate(50,40)">
+    <!-- Lock body -->
+    <rect x="75" y="60" width="100" height="80" rx="10" class="st1"/>
+    <rect x="85" y="70" width="80" height="60" rx="5" class="st3"/>
+    
+    <!-- Lock shackle -->
+    <path d="M95,60 L95,40 C95,20 155,20 155,40 L155,60" 
+          fill="none" stroke="#dc3545" stroke-width="12" stroke-linecap="round"/>
+    
+    <!-- Keyhole -->
+    <circle cx="125" cy="100" r="10" class="st2"/>
+    <rect x="123" y="100" width="4" height="15" rx="2" class="st2"/>
+    
+    <!-- Stop sign -->
+    <g transform="translate(190,40)">
+      <polygon points="0,12 8.5,3.5 17,12 12,17 3.5,8.5 12,0 20.5,8.5 12,17" 
+              fill="#dc3545" transform="scale(1.2)"/>
+      <line x1="10" y1="5" x2="20" y2="15" stroke="#fff" stroke-width="2"/>
+      <line x1="10" y1="15" x2="20" y2="5" stroke="#fff" stroke-width="2"/>
+    </g>
+    
+    <!-- Shield (left side) -->
+    <g transform="translate(30,40)">
+      <path d="M0,0 L20,0 C20,30 10,40 10,40 C10,40 0,30 0,0 Z" class="st1" opacity="0.7"/>
+      <path d="M10,5 L10,25 M5,10 L15,10" stroke="#fff" stroke-width="2"/>
+    </g>
+    
+    <text x="125" y="160" font-family="Arial" font-size="14" text-anchor="middle" class="st2">Access Denied</text>
+  </g>
+</svg> 

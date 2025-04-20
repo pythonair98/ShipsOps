@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <style>
+    .st0{fill:#fff9e6;} /* Background */
+    .st1{fill:#ffc107;} /* Warning color */
+    .st2{fill:#333;} /* Dark elements */
+    .st3{fill:#fff;} /* White elements */
+    .st4{fill:#dc3545;} /* Danger color */
+  </style>
+  <rect class="st0" x="0" y="0" width="300" height="200" rx="10"/>
+  <g transform="translate(20,20)">
+    <!-- Server rack -->
+    <rect x="80" y="30" width="140" height="120" rx="5" fill="#6c757d"/>
+    <rect x="90" y="40" width="120" height="100" rx="3" class="st3"/>
+    
+    <!-- Server units -->
+    <rect x="100" y="50" width="100" height="20" rx="2" class="st2"/>
+    <rect x="100" y="80" width="100" height="20" rx="2" class="st2"/>
+    <rect x="100" y="110" width="100" height="20" rx="2" class="st4"/>
+    
+    <!-- Server lights -->
+    <circle cx="110" cy="60" r="4" class="st1"/>
+    <circle cx="125" cy="60" r="4" class="st3"/>
+    <circle cx="110" cy="90" r="4" class="st1"/>
+    <circle cx="125" cy="90" r="4" class="st3"/>
+    <circle cx="110" cy="120" r="4" class="st4" opacity="0.5">
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="125" cy="120" r="4" class="st4" opacity="0.7">
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+    
+    <!-- Warning symbol -->
+    <g transform="translate(210,60)">
+      <polygon points="0,20 10,0 20,20" class="st1"/>
+      <text x="10" y="17" font-family="Arial" font-weight="bold" font-size="15" text-anchor="middle" class="st3">!</text>
+    </g>
+    
+    <!-- Cables -->
+    <path d="M60,50 C40,50 40,80 60,80" fill="none" stroke="#28a745" stroke-width="2"/>
+    <path d="M60,90 C30,90 30,120 60,120" fill="none" stroke="#0d6efd" stroke-width="2"/>
+    <path d="M220,50 C240,50 240,80 220,80" fill="none" stroke="#dc3545" stroke-width="2"/>
+    <path d="M220,90 C250,90 250,120 220,120" fill="none" stroke="#ffc107" stroke-width="2"/>
+    
+    <!-- Lightning bolt -->
+    <polygon points="40,40 50,65 40,65 55,90" fill="none" stroke="#ffc107" stroke-width="3"/>
+    
+    <text x="150" y="160" font-family="Arial" font-size="14" text-anchor="middle" class="st2">Server Error</text>
+  </g>
+</svg> 

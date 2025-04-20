@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Server Error{% endblock %}
+
+{% block content %}
+<div class="container error-page">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="error-container mt-5">
+                <h1 class="display-1 text-warning">500</h1>
+                <h2 class="mb-4">Oops! Server Error</h2>
+                <p class="lead mb-5">Something went wrong on our servers. Our technical team has been notified and is working to fix the issue.</p>
+                <div class="error-image mb-4">
+                    <img src="{% static 'imgs/server-error.svg' %}" alt="Server Error" class="img-fluid" style="max-height: 300px;">
+                </div>
+                <div class="mt-4">
+                    <a href="{% url 'home' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-home"></i> Return to Dashboard
+                    </a>
+                    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-lg ml-3">
+                        <i class="fas fa-arrow-left"></i> Go Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .error-page {
+        padding: 50px 0;
+    }
+    .error-container {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+        padding: 50px;
+    }
+    .error-page h1 {
+        font-size: 8rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 15px rgba(255, 193, 7, 0.3);
+    }
+    .error-image {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    .ml-3 {
+        margin-left: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/error-handlers.js' %}"></script>
+{% endblock %} 

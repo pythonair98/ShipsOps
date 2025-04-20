@@ -12,6 +12,7 @@ urlpatterns = [
     path('user/activate/<int:user_id>/', activate_user_view, name='activate_user'),
     path('user/deactivate/<int:user_id>/', deactivate_user_view, name='deactivate_user'),
     path('user/reset-password/<int:user_id>/', reset_user_password_view, name='reset_user_password'),
+
 ]
 # User management URLs
 
