@@ -15,6 +15,31 @@
             </button>
           </div>
         </div>
+        <!-- State Filter -->
+        <div class="card-body pb-0">
+          <form method="get" action="{% url 'contract_list' %}" class="mb-3">
+            <div class="row align-items-end">
+              <div class="col-md-3">
+                <label for="state" class="form-label">Filter by State:</label>
+                <select name="state" id="state" class="form-select" onchange="this.form.submit()">
+                  <option value="">All States</option>
+                  {% for state_code, state_name in contract_states %}
+                    <option value="{{ state_code }}" {% if current_state == state_code|stringformat:"s" %}selected{% endif %}>
+                      {{ state_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-2">
+                {% if current_state %}
+                <a href="{% url 'contract_list' %}" class="btn btn-outline-secondary">
+                  <i class="fas fa-times me-1"></i>Clear Filter
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </form>
+        </div>
         <div class="card-body">
           <!-- Contract List -->
           <div class="table-responsive">
@@ -24,6 +49,7 @@
                   <th scope="col">Charter Party Dated</th>
                   <th scope="col">Charterer</th>
                   <th scope="col">Vessel</th>
+                  <th scope="col">State</th>
                   <th scope="col">Laycan</th>
                   <th scope="col">Actions</th>
                 </tr>
@@ -34,6 +60,17 @@
                   <td>{{ contract.charter_party_dated }}</td>
                   <td>{{ contract.charterer }}</td>
                   <td>{{ contract.vessel }}</td>
+                  <td>
+                    {% if contract.state == 0 %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                    {% elif contract.state == 1 %}
+                    <span class="badge bg-success">Finance</span>
+                    {% elif contract.state == 2 %}
+                    <span class="badge bg-info">Billed</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Unknown</span>
+                    {% endif %}
+                  </td>
                   <td>{{ contract.laycan }}</td>
                   <td>
                     <div class="btn-group" role="group">
@@ -86,7 +123,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="5" class="text-center py-4">
+                  <td colspan="6" class="text-center py-4">
                     <div class="alert alert-info mb-0">
                       <i class="fas fa-info-circle me-2"></i>No contracts found
                     </div>

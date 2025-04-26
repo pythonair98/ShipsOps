@@ -1,0 +1,638 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Contract Status Reports{% endblock title %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<style>
+    .summary-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .stat-card {
+        flex: 1;
+        min-width: 200px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .stat-value {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 14px;
+    }
+    .report-section {
+        background-color: white;
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .chart-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .chart-col {
+        flex: 1;
+        min-width: 300px;
+    }
+    .contracts-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    .contracts-table th, .contracts-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .contracts-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    .contracts-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .status-active {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .status-completed {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .status-cancelled {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .date-filter {
+        background-color: white;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .search-box {
+        width: 100%;
+        max-width: 300px;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .contract-detail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .detail-item {
+        flex: 1;
+        min-width: 200px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+    }
+    .detail-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    .detail-value {
+        font-weight: 600;
+    }
+    .progress-bar-container {
+        height: 6px;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        margin-top: 10px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background-color: #007bff;
+    }
+    @media (max-width: 768px) {
+        .chart-col {
+            min-width: 100%;
+        }
+    }
+</style>
+{% endblock head %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Contract Status Reports</h1>
+        <div>
+            <button class="btn btn-sm btn-outline-secondary me-2 date-filter">
+                <i class="fas fa-calendar me-2"></i>Last 30 Days
+            </button>
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="summary-stats">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_contracts }}</div>
+            <div class="stat-label">Total Contracts</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ active_contracts }}</div>
+            <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ completed_contracts }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ pending_contracts }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ cancelled_contracts }}</div>
+            <div class="stat-label">Cancelled</div>
+        </div>
+    </div>
+
+    <!-- Contract Status Overview -->
+    <div class="report-section">
+        <h2 class="h4 mb-4">Contract Status Overview</h2>
+        <div class="chart-row">
+            <div class="chart-col">
+                <canvas id="contractStatusChart" height="300"></canvas>
+            </div>
+            <div class="chart-col">
+                <canvas id="contractValueByStatusChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contract Trends -->
+    <div class="report-section">
+        <h2 class="h4 mb-4">Contract Trends</h2>
+        <div class="chart-row">
+            <div class="chart-col">
+                <h3 class="h5 mb-3">New Contracts Over Time</h3>
+                <canvas id="newContractsChart" height="250"></canvas>
+            </div>
+            <div class="chart-col">
+                <h3 class="h5 mb-3">Contract Value Trends</h3>
+                <canvas id="contractValueTrendChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contract by Vessel Type -->
+    <div class="report-section">
+        <h2 class="h4 mb-4">Contracts by Vessel Type</h2>
+        <div class="chart-row">
+            <div class="chart-col">
+                <canvas id="contractsByVesselTypeChart" height="300"></canvas>
+            </div>
+            <div class="chart-col">
+                <h3 class="h5 mb-3">Top Vessels by Contract Value</h3>
+                <table class="contracts-table">
+                    <thead>
+                        <tr>
+                            <th>Vessel</th>
+                            <th>Type</th>
+                            <th>Contract Count</th>
+                            <th>Total Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vessel in top_vessels %}
+                        <tr>
+                            <td>{{ vessel.name }}</td>
+                            <td>{{ vessel.type }}</td>
+                            <td>{{ vessel.contract_count }}</td>
+                            <td>${{ vessel.total_value|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No vessel data available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contract Details -->
+    <div class="report-section">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h4 mb-0">Contract Details</h2>
+            <div>
+                <input type="text" class="search-box" placeholder="Search contracts..." id="contractSearch">
+            </div>
+        </div>
+        
+        <table class="contracts-table" id="contractsTable">
+            <thead>
+                <tr>
+                    <th>Contract ID</th>
+                    <th>Vessel</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Value</th>
+                    <th>Status</th>
+                    <th>Completion</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contract in contracts %}
+                <tr>
+                    <td><a href="#" class="text-primary" data-bs-toggle="modal" data-bs-target="#contractModal{{ contract.id }}">{{ contract.id }}</a></td>
+                    <td>{{ contract.vessel.name }}</td>
+                    <td>{{ contract.start_date|date:"M d, Y" }}</td>
+                    <td>{{ contract.end_date|date:"M d, Y" }}</td>
+                    <td>${{ contract.value|floatformat:2 }}</td>
+                    <td>
+                        {% if contract.status == 'active' %}
+                            <span class="status-badge status-active">Active</span>
+                        {% elif contract.status == 'completed' %}
+                            <span class="status-badge status-completed">Completed</span>
+                        {% elif contract.status == 'pending' %}
+                            <span class="status-badge status-pending">Pending</span>
+                        {% elif contract.status == 'cancelled' %}
+                            <span class="status-badge status-cancelled">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: {{ contract.completion_percentage }}%;"></div>
+                        </div>
+                        <small class="text-muted">{{ contract.completion_percentage }}%</small>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">No contracts available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Contract Modal -->
+    {% for contract in contracts %}
+    <div class="modal fade" id="contractModal{{ contract.id }}" tabindex="-1" aria-labelledby="contractModalLabel{{ contract.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="contractModalLabel{{ contract.id }}">Contract Details: #{{ contract.id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="contract-detail">
+                        <div class="detail-item">
+                            <div class="detail-label">Vessel</div>
+                            <div class="detail-value">{{ contract.vessel.name }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Client</div>
+                            <div class="detail-value">{{ contract.client.name }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Status</div>
+                            <div class="detail-value">
+                                {% if contract.status == 'active' %}
+                                    <span class="status-badge status-active">Active</span>
+                                {% elif contract.status == 'completed' %}
+                                    <span class="status-badge status-completed">Completed</span>
+                                {% elif contract.status == 'pending' %}
+                                    <span class="status-badge status-pending">Pending</span>
+                                {% elif contract.status == 'cancelled' %}
+                                    <span class="status-badge status-cancelled">Cancelled</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="contract-detail">
+                        <div class="detail-item">
+                            <div class="detail-label">Start Date</div>
+                            <div class="detail-value">{{ contract.start_date|date:"F d, Y" }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">End Date</div>
+                            <div class="detail-value">{{ contract.end_date|date:"F d, Y" }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Duration</div>
+                            <div class="detail-value">{{ contract.duration }} days</div>
+                        </div>
+                    </div>
+                    
+                    <div class="contract-detail">
+                        <div class="detail-item">
+                            <div class="detail-label">Contract Value</div>
+                            <div class="detail-value">${{ contract.value|floatformat:2 }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Payment Terms</div>
+                            <div class="detail-value">{{ contract.payment_terms }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Created By</div>
+                            <div class="detail-value">{{ contract.created_by }}</div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-2">Contract Description</h6>
+                    <p>{{ contract.description }}</p>
+                    
+                    <h6 class="mt-4 mb-2">Related Documents</h6>
+                    <ul class="list-group">
+                        {% for document in contract.documents.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ document.name }}
+                            <a href="{{ document.file.url }}" class="btn btn-sm btn-outline-primary" download>
+                                <i class="fas fa-download me-1"></i> Download
+                            </a>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item">No documents attached to this contract.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="#" class="btn btn-primary">Edit Contract</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    // Chart colors
+    const chartColors = {
+        blue: '#007bff',
+        green: '#28a745',
+        yellow: '#ffc107',
+        red: '#dc3545',
+        orange: '#fd7e14',
+        purple: '#6f42c1',
+        cyan: '#17a2b8',
+        pink: '#e83e8c',
+        teal: '#20c997',
+        indigo: '#6610f2',
+        gray: '#6c757d'
+    };
+    
+    // Helper function for safe JSON parsing
+    function safeJSONParse(jsonStr) {
+        try {
+            return JSON.parse(jsonStr) || [];
+        } catch (e) {
+            console.error("Error parsing JSON:", e);
+            return [];
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            // Contract Status Chart
+            const statusLabels = ['Active', 'Completed', 'Pending', 'Cancelled'];
+            const statusData = [
+                {{ active_contracts }}, 
+                {{ completed_contracts }}, 
+                {{ pending_contracts }}, 
+                {{ cancelled_contracts }}
+            ];
+            
+            const ctx1 = document.getElementById('contractStatusChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'pie',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: statusData,
+                        backgroundColor: [
+                            chartColors.green,
+                            chartColors.blue,
+                            chartColors.yellow,
+                            chartColors.red
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Contract Status Distribution'
+                        }
+                    }
+                }
+            });
+            
+            // Contract Value by Status Chart
+            const statusValues = safeJSONParse('{{ contract_values_by_status_json|escapejs }}');
+            
+            const ctx2 = document.getElementById('contractValueByStatusChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        label: 'Contract Value (USD)',
+                        data: statusValues,
+                        backgroundColor: [
+                            chartColors.green,
+                            chartColors.blue,
+                            chartColors.yellow,
+                            chartColors.red
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Value (USD)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Contract Value by Status'
+                        }
+                    }
+                }
+            });
+            
+            // New Contracts Over Time Chart
+            const months = safeJSONParse('{{ months_json|escapejs }}');
+            const newContractsData = safeJSONParse('{{ new_contracts_data_json|escapejs }}');
+            
+            const ctx3 = document.getElementById('newContractsChart').getContext('2d');
+            new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'New Contracts',
+                        data: newContractsData,
+                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                        borderColor: chartColors.blue,
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Contracts'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Contract Value Trend Chart
+            const contractValueTrend = safeJSONParse('{{ contract_value_trend_json|escapejs }}');
+            
+            const ctx4 = document.getElementById('contractValueTrendChart').getContext('2d');
+            new Chart(ctx4, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Contract Value',
+                        data: contractValueTrend,
+                        backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                        borderColor: chartColors.green,
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Value (USD)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Contracts by Vessel Type Chart
+            const vesselTypes = safeJSONParse('{{ vessel_types_json|escapejs }}');
+            const contractsByType = safeJSONParse('{{ contracts_by_type_json|escapejs }}');
+            
+            const ctx5 = document.getElementById('contractsByVesselTypeChart').getContext('2d');
+            new Chart(ctx5, {
+                type: 'doughnut',
+                data: {
+                    labels: vesselTypes,
+                    datasets: [{
+                        data: contractsByType,
+                        backgroundColor: [
+                            chartColors.blue,
+                            chartColors.green,
+                            chartColors.yellow,
+                            chartColors.purple,
+                            chartColors.orange,
+                            chartColors.cyan
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Contracts by Vessel Type'
+                        }
+                    }
+                }
+            });
+            
+            // Search functionality
+            document.getElementById('contractSearch').addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const table = document.getElementById('contractsTable');
+                const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+                
+                for (let i = 0; i < rows.length; i++) {
+                    let matchFound = false;
+                    const cells = rows[i].getElementsByTagName('td');
+                    
+                    for (let j = 0; j < cells.length; j++) {
+                        const cellText = cells[j].textContent.toLowerCase();
+                        if (cellText.indexOf(searchTerm) > -1) {
+                            matchFound = true;
+                            break;
+                        }
+                    }
+                    
+                    if (matchFound) {
+                        rows[i].style.display = '';
+                    } else {
+                        rows[i].style.display = 'none';
+                    }
+                }
+            });
+            
+        } catch (error) {
+            console.error("Error initializing charts:", error);
+        }
+    });
+</script>
+{% endblock extra_js %} 

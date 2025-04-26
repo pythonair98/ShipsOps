@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Contract & Invoice Analytics{% endblock title %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<style>
+    .metric-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .metric-card {
+        flex: 1;
+        min-width: 200px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .card-value {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .chart-container {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .chart-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .chart-col {
+        flex: 1;
+        min-width: 45%;
+    }
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    .data-table th {
+        background-color: #f2f2f2;
+    }
+    .data-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    .progress-container {
+        margin-top: 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        height: 20px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background-color: #007bff;
+        text-align: center;
+        color: white;
+        line-height: 20px;
+        font-size: 12px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .chart-row {
+            flex-direction: column;
+        }
+        .chart-col {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock head %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Contract & Invoice Analytics</h1>
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Print Report
+        </button>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="metric-cards">
+        <div class="metric-card">
+            <h3>Total Contracts</h3>
+            <div class="card-value">{{ total_contracts }}</div>
+        </div>
+        <div class="metric-card">
+            <h3>Total Invoices</h3>
+            <div class="card-value">{{ total_invoices }}</div>
+        </div>
+        <div class="metric-card">
+            <h3>Total Invoiced (USD)</h3>
+            <div class="card-value">${{ total_invoiced_usd|floatformat:2 }}</div>
+        </div>
+        <div class="metric-card">
+            <h3>Total Invoiced (AED)</h3>
+            <div class="card-value">AED {{ total_invoiced_aed|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <!-- Invoice Progress -->
+    <div class="chart-container">
+        <h2>Contract Invoicing Progress</h2>
+        <div class="metric-cards">
+            <div class="metric-card">
+                <h3>Contracts with Invoices</h3>
+                <div class="card-value">{{ contracts_with_invoice }} ({{ invoice_percentage }}%)</div>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: {{ invoice_percentage }}%;">{{ invoice_percentage }}%</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <h3>Contracts without Invoices</h3>
+                <div class="card-value">{{ contracts_without_invoice }}</div>
+            </div>
+            <div class="metric-card">
+                <h3>Average Invoice Value</h3>
+                <div class="card-value">${{ avg_invoice_usd|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="chart-row">
+        <!-- Contract Status Distribution -->
+        <div class="chart-col">
+            <div class="chart-container">
+                <h2>Contract Status Distribution</h2>
+                <canvas id="statusChart" height="300"></canvas>
+            </div>
+        </div>
+        <!-- Invoice Status Distribution -->
+        <div class="chart-col">
+            <div class="chart-container">
+                <h2>Invoice Status Distribution</h2>
+                <canvas id="invoiceStatusChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Data Chart -->
+    <div class="chart-container">
+        <h2>Monthly Activity</h2>
+        <canvas id="monthlyChart" height="300"></canvas>
+    </div>
+    
+    <!-- Charts Section Row 2 -->
+    <div class="chart-row">
+        <!-- Contract by Vessel -->
+        <div class="chart-col">
+            <div class="chart-container">
+                <h2>Contracts by Vessel</h2>
+                <canvas id="vesselChart" height="300"></canvas>
+            </div>
+        </div>
+        <!-- Monthly Invoice Revenue -->
+        <div class="chart-col">
+            <div class="chart-container">
+                <h2>Monthly Invoice Revenue (USD)</h2>
+                <canvas id="revenueChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expiring Contracts -->
+    <div class="chart-container">
+        <h2>Contracts Expiring Soon (Next 30 Days)</h2>
+        {% if expiring_soon %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Contract ID</th>
+                        <th>Vessel</th>
+                        <th>Expiration Date</th>
+                        <th>Days Left</th>
+                        <th>Invoice Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contract in expiring_soon %}
+                    <tr>
+                        <td>{{ contract.id }}</td>
+                        <td>{{ contract.vessel }}</td>
+                        <td>{{ contract.contract_end|date:"M d, Y" }}</td>
+                        <td>{{ contract.contract_end|timeuntil }}</td>
+                        <td>
+                            {% if contract.invoice %}
+                                {{ contract.invoice.get_status_display }}
+                            {% else %}
+                                Not Invoiced
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>No contracts expiring in the next 30 days.</p>
+        {% endif %}
+    </div>
+
+    <!-- Overdue Invoices -->
+    <div class="chart-container">
+        <h2>Overdue Invoices</h2>
+        <p><strong>Note:</strong> This table shows all invoices with due dates in the past, regardless of their current status. 
+        The Invoice Status Distribution chart shows only invoices officially marked with "Overdue" status.</p>
+        {% if overdue_invoices %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Invoice ID</th>
+                        <th>Contract</th>
+                        <th>Due Date</th>
+                        <th>Amount (USD)</th>
+                        <th>Overdue By</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in overdue_invoices %}
+                    <tr>
+                        <td>{{ invoice.id }}</td>
+                        <td>{{ invoice.contract.id }} - {{ invoice.contract.vessel }}</td>
+                        <td>{{ invoice.due_date|date:"M d, Y" }}</td>
+                        <td>${{ invoice.price_usd|floatformat:2 }}</td>
+                        <td>{{ invoice.due_date|timesince }}</td>
+                        <td>{{ invoice.get_status_display }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>No overdue invoices found. This seems incorrect - please check the system.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    // Check if Chart.js is loaded properly
+    if (typeof Chart === 'undefined') {
+        console.error("Chart.js is not loaded!");
+        alert("Chart.js failed to load. The charts will not be displayed.");
+    }
+
+    // Safely parse JSON data with fallback to empty arrays
+    function safeJSONParse(jsonStr) {
+        try {
+            const parsed = JSON.parse(jsonStr);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.error('Error parsing JSON:', e, jsonStr);
+            return [];
+        }
+    }
+
+    // Chart colors
+    const chartColors = {
+        blue: '#36A2EB',
+        green: '#4BC0C0',
+        yellow: '#FFCE56',
+        red: '#FF6384',
+        purple: '#9966FF',
+        orange: '#FF9F40'
+    };
+
+    try {
+        // Contract Status Distribution Chart
+        const statusLabels = safeJSONParse('{{ status_labels_json|escapejs }}');
+        const statusCounts = safeJSONParse('{{ status_counts_json|escapejs }}');
+        
+        // Map numeric status codes to readable labels
+        const statusNames = {
+            0: 'Pending',
+            1: 'Finance',
+            2: 'Billed',
+            3: 'Completed'
+        };
+        
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: {
+                labels: statusLabels.map(label => statusNames[label] || `Status ${label}`),
+                datasets: [{
+                    data: statusCounts,
+                    backgroundColor: Object.values(chartColors)
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Contract Status Distribution'
+                    }
+                }
+            }
+        });
+
+        // Invoice Status Distribution Chart
+        const invoiceStatusLabels = safeJSONParse('{{ invoice_status_labels_json|escapejs }}');
+        const invoiceStatusCounts = safeJSONParse('{{ invoice_status_counts_json|escapejs }}');
+        
+        // Map numeric invoice status codes to readable labels
+        const invoiceStatusNames = {
+            0: 'Pending',
+            1: 'Paid',
+            2: 'Overdue',
+            3: 'Cancelled'
+        };
+        
+        const invoiceStatusCtx = document.getElementById('invoiceStatusChart').getContext('2d');
+        new Chart(invoiceStatusCtx, {
+            type: 'pie',
+            data: {
+                labels: invoiceStatusLabels.map(label => invoiceStatusNames[label] || `Status ${label}`),
+                datasets: [{
+                    data: invoiceStatusCounts,
+                    backgroundColor: Object.values(chartColors)
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Invoice Status Distribution'
+                    }
+                }
+            }
+        });
+
+        // Monthly Activity Chart (Combined contracts and invoices)
+        const months = safeJSONParse('{{ months_json|escapejs }}');
+        const contractCounts = safeJSONParse('{{ contract_counts_json|escapejs }}');
+        const invoiceCounts = safeJSONParse('{{ invoice_counts_json|escapejs }}');
+        
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Contracts',
+                        data: contractCounts,
+                        backgroundColor: chartColors.blue,
+                        borderColor: chartColors.blue,
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Invoices',
+                        data: invoiceCounts,
+                        backgroundColor: chartColors.green,
+                        borderColor: chartColors.green,
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Count'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Manually construct vessel data from Django template
+        let vesselData = [];
+        {% for item in contracts_by_vessel|slice:":5" %}
+            vesselData.push({
+                vessel: "{{ item.vessel }}",
+                count: {{ item.count }}
+            });
+        {% endfor %}
+        
+        const vesselNames = vesselData.map(item => item.vessel);
+        const vesselCounts = vesselData.map(item => item.count);
+        
+        const vesselCtx = document.getElementById('vesselChart').getContext('2d');
+        new Chart(vesselCtx, {
+            type: 'bar',
+            data: {
+                labels: vesselNames,
+                datasets: [{
+                    label: 'Number of Contracts',
+                    data: vesselCounts,
+                    backgroundColor: chartColors.purple,
+                    borderColor: chartColors.purple,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Top Vessels by Contract Count'
+                    }
+                }
+            }
+        });
+        
+        // Monthly Revenue Chart
+        const invoiceAmounts = safeJSONParse('{{ invoice_amounts_json|escapejs }}');
+        
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Revenue (USD)',
+                    data: invoiceAmounts,
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                    borderColor: chartColors.orange,
+                    borderWidth: 2,
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Amount (USD)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error creating charts:", error);
+        alert("An error occurred while creating the charts: " + error.message);
+    }
+</script>
+{% endblock extra_js %}

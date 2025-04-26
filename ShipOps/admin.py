@@ -1,15 +1,11 @@
 from django.contrib import admin
+
 from .models import (
-    Contact,
     Contract,
     Invoice,
     Vessel,
     VesselDocument,
     VesselMaintenance,
-    ReportTemplate,
-    SavedReport,
-    Dashboard,
-    AnalyticsLog
 )
 
 
@@ -81,29 +77,3 @@ class VesselMaintenanceAdmin(admin.ModelAdmin):
     date_hierarchy = 'scheduled_date'
 
 # Register reporting models
-@admin.register(ReportTemplate)
-class ReportTemplateAdmin(admin.ModelAdmin):
-    list_display = ('name', 'report_type', 'created_by', 'is_public', 'updated_at')
-    list_filter = ('report_type', 'is_public', 'created_at')
-    search_fields = ('name', 'description')
-    readonly_fields = ('created_at', 'updated_at')
-
-@admin.register(SavedReport)
-class SavedReportAdmin(admin.ModelAdmin):
-    list_display = ('name', 'report_type', 'created_by', 'created_at')
-    list_filter = ('report_type', 'created_at')
-    search_fields = ('name', 'description')
-    readonly_fields = ('created_at',)
-
-@admin.register(Dashboard)
-class DashboardAdmin(admin.ModelAdmin):
-    list_display = ('name', 'created_by', 'is_public', 'updated_at')
-    list_filter = ('is_public', 'created_at')
-    search_fields = ('name', 'description')
-    readonly_fields = ('created_at', 'updated_at')
-
-@admin.register(AnalyticsLog)
-class AnalyticsLogAdmin(admin.ModelAdmin):
-    list_display = ('user', 'action', 'timestamp')
-    list_filter = ('action', 'timestamp')
-    readonly_fields = ('timestamp',)

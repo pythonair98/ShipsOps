@@ -1,0 +1,468 @@
+{% load custom_filters %}
+
+<div class="row mb-4">
+    <!-- Summary Cards -->
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Total Vessels</h5>
+                <p class="summary-number">{{ vessel_data.total_vessels }}</p>
+                <p class="summary-label">All vessels</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Active</h5>
+                <p class="summary-number">{{ vessel_data.active_vessels }}</p>
+                <p class="summary-label">In operation</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Maintenance Due</h5>
+                <p class="summary-number">{{ vessel_data.maintenance_due }}</p>
+                <p class="summary-label">Scheduled maintenance</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Utilization</h5>
+                <p class="summary-number">{{ vessel_data.utilization_rate|floatformat:1 }}%</p>
+                <p class="summary-label">Average utilization</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if report_execution.report.show_chart and vessel_data.chart_data %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Vessel Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="vesselStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Monthly Fleet Utilization</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="utilizationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Status distribution chart
+        const statusCtx = document.getElementById('vesselStatusChart').getContext('2d');
+        const statusLabels = {{ vessel_data.status_labels|safe }};
+        const statusData = {{ vessel_data.status_data|safe }};
+        
+        const statusColors = [
+            '#28a745',  // Operational
+            '#ffc107',  // In Port
+            '#17a2b8',  // Under Maintenance
+            '#dc3545',  // Out of Service
+            '#6c757d'   // Other
+        ];
+        
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: statusColors.slice(0, statusData.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                let total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                let percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Monthly utilization chart
+        const utilizationCtx = document.getElementById('utilizationChart').getContext('2d');
+        const monthLabels = {{ vessel_data.month_labels|safe }};
+        const utilizationData = {{ vessel_data.utilization_data|safe }};
+        const targetData = {{ vessel_data.target_utilization|safe }};
+        
+        new Chart(utilizationCtx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: 'Actual Utilization',
+                        data: utilizationData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Target',
+                        data: targetData,
+                        backgroundColor: 'transparent',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Utilization (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Vessel List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="vesselTable">
+                        <thead>
+                            <tr>
+                                <th>IMO</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Current Location</th>
+                                <th>Last Inspected</th>
+                                <th>Certification</th>
+                                <th>Utilization</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vessel in vessel_data.vessels %}
+                            <tr>
+                                <td>{{ vessel.imo_number }}</td>
+                                <td>{{ vessel.name }}</td>
+                                <td>{{ vessel.vessel_type }}</td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if vessel.status == 'Operational' %}bg-success
+                                        {% elif vessel.status == 'In Port' %}bg-warning
+                                        {% elif vessel.status == 'Under Maintenance' %}bg-info
+                                        {% elif vessel.status == 'Out of Service' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ vessel.status }}
+                                    </span>
+                                </td>
+                                <td>{{ vessel.current_location }}</td>
+                                <td>
+                                    <span class="
+                                        {% if vessel.days_since_last_inspection > 365 %}text-danger
+                                        {% elif vessel.days_since_last_inspection > 180 %}text-warning
+                                        {% else %}text-success{% endif %}">
+                                        {{ vessel.last_inspection_date }}
+                                        ({{ vessel.days_since_last_inspection }} days ago)
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar 
+                                            {% if vessel.certification_status >= 75 %}bg-success
+                                            {% elif vessel.certification_status >= 50 %}bg-info
+                                            {% elif vessel.certification_status >= 25 %}bg-warning
+                                            {% else %}bg-danger{% endif %}" 
+                                            role="progressbar" 
+                                            style="width: {{ vessel.certification_status }}%"
+                                            aria-valuenow="{{ vessel.certification_status }}" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="100"
+                                            data-toggle="tooltip" 
+                                            title="{{ vessel.certification_status }}% valid certificates">
+                                            {{ vessel.certification_status }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ vessel.utilization_rate|floatformat:1 }}%</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'vessel_detail' vessel.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-ship"></i> Details
+                                        </a>
+                                        <button class="btn btn-sm btn-secondary document-btn" data-vessel-id="{{ vessel.id }}">
+                                            <i class="fas fa-file"></i> Documents
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if vessel_data.maintenance_schedule %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Upcoming Maintenance</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="maintenanceTable">
+                        <thead>
+                            <tr>
+                                <th>Vessel</th>
+                                <th>Type</th>
+                                <th>Scheduled Date</th>
+                                <th>Days Until</th>
+                                <th>Location</th>
+                                <th>Duration (Days)</th>
+                                <th>Estimated Cost</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for maintenance in vessel_data.maintenance_schedule %}
+                            <tr>
+                                <td>{{ maintenance.vessel_name }}</td>
+                                <td>{{ maintenance.maintenance_type }}</td>
+                                <td>{{ maintenance.scheduled_date }}</td>
+                                <td>
+                                    <span class="
+                                        {% if maintenance.days_until < 7 %}text-danger
+                                        {% elif maintenance.days_until < 30 %}text-warning
+                                        {% else %}text-info{% endif %}">
+                                        {{ maintenance.days_until }} days
+                                    </span>
+                                </td>
+                                <td>{{ maintenance.location }}</td>
+                                <td>{{ maintenance.duration }}</td>
+                                <td>{{ maintenance.estimated_cost|floatformat:0 }} {{ maintenance.currency }}</td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if maintenance.status == 'Planned' %}bg-primary
+                                        {% elif maintenance.status == 'Confirmed' %}bg-success
+                                        {% elif maintenance.status == 'Delayed' %}bg-warning
+                                        {% elif maintenance.status == 'In Progress' %}bg-info
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ maintenance.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary schedule-btn" data-maintenance-id="{{ maintenance.id }}">
+                                        <i class="fas fa-calendar-alt"></i> Schedule
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if vessel_data.expiring_certificates %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Expiring Certificates</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="certificateTable">
+                        <thead>
+                            <tr>
+                                <th>Vessel</th>
+                                <th>Certificate Type</th>
+                                <th>Issue Date</th>
+                                <th>Expiry Date</th>
+                                <th>Days Until Expiry</th>
+                                <th>Issuing Authority</th>
+                                <th>Renewal Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for certificate in vessel_data.expiring_certificates %}
+                            <tr class="{% if certificate.days_until_expiry < 30 %}table-danger{% elif certificate.days_until_expiry < 90 %}table-warning{% endif %}">
+                                <td>{{ certificate.vessel_name }}</td>
+                                <td>{{ certificate.certificate_type }}</td>
+                                <td>{{ certificate.issue_date }}</td>
+                                <td>{{ certificate.expiry_date }}</td>
+                                <td>
+                                    <span class="
+                                        {% if certificate.days_until_expiry < 30 %}text-danger font-weight-bold
+                                        {% elif certificate.days_until_expiry < 90 %}text-warning font-weight-bold
+                                        {% else %}text-info{% endif %}">
+                                        {{ certificate.days_until_expiry }} days
+                                    </span>
+                                </td>
+                                <td>{{ certificate.issuing_authority }}</td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if certificate.renewal_status == 'Not Started' %}bg-danger
+                                        {% elif certificate.renewal_status == 'In Progress' %}bg-warning
+                                        {% elif certificate.renewal_status == 'Scheduled' %}bg-info
+                                        {% elif certificate.renewal_status == 'Completed' %}bg-success
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ certificate.renewal_status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'view_certificate' certificate.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <button class="btn btn-sm btn-success renewal-btn" data-certificate-id="{{ certificate.id }}">
+                                            <i class="fas fa-sync-alt"></i> Renewal
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+        
+        // Initialize DataTables
+        $('#vesselTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        
+        {% if vessel_data.maintenance_schedule %}
+        $('#maintenanceTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        
+        // Set up maintenance scheduling functionality
+        $('.schedule-btn').on('click', function() {
+            const maintenanceId = $(this).data('maintenance-id');
+            window.location.href = "{% url 'schedule_maintenance' %}?maintenance_id=" + maintenanceId;
+        });
+        {% endif %}
+        
+        {% if vessel_data.expiring_certificates %}
+        $('#certificateTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        
+        // Set up certificate renewal functionality
+        $('.renewal-btn').on('click', function() {
+            const certificateId = $(this).data('certificate-id');
+            window.location.href = "{% url 'certificate_renewal' %}?certificate_id=" + certificateId;
+        });
+        
+        // Set up vessel documents functionality
+        $('.document-btn').on('click', function() {
+            const vesselId = $(this).data('vessel-id');
+            window.location.href = "{% url 'vessel_documents' %}?vessel_id=" + vesselId;
+        });
+    });
+</script> 

@@ -190,6 +190,49 @@
       margin-left: 70px;
       width: calc(100% - 70px);
     }
+    
+    /* Dropdown menu styles */
+    .dropdown-menu {
+      margin-left: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      border: none;
+      background-color: white;
+      min-width: 200px;
+    }
+    
+    .dropdown-item {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    
+    .dropdown-item:hover {
+      background-color: rgba(67, 97, 238, 0.1);
+      color: var(--primary-color);
+    }
+    
+    .dropdown-divider {
+      margin: 0.5rem 0;
+      border-top: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .nav-item.dropdown .dropdown-toggle::after {
+      margin-left: 0.5rem;
+    }
+    
+    /* Small screens dropdown handling */
+    @media (max-width: 992px) {
+      .dropdown-menu {
+        margin-left: 0;
+        border-radius: 0;
+        box-shadow: none;
+        background-color: rgba(67, 97, 238, 0.05);
+        border-left: 4px solid var(--primary-color);
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+    }
   </style>
   <script>
     function hideflashes() {
@@ -259,11 +302,29 @@
           <span>Vessels</span>
         </a>
       </li>
-      <li class="nav-item">
-        <a class="nav-link" href="{% url 'report-list' %}">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <i class="fas fa-chart-bar"></i>
           <span>Reports & Analytics</span>
         </a>
+        <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+          <li><a class="dropdown-item" href="{% url 'contract_analytics' %}">
+            <i class="fas fa-file-contract me-2"></i>Contract Analytics
+          </a></li>
+          <li><a class="dropdown-item" href="{% url 'invoice_reports' %}">
+            <i class="fas fa-file-invoice me-2"></i>Invoice Reports
+          </a></li>
+          <li><a class="dropdown-item" href="{% url 'vessel_performance' %}">
+            <i class="fas fa-ship me-2"></i>Vessel Performance
+          </a></li>
+          <li><a class="dropdown-item" href="{% url 'maintenance_report' %}">
+            <i class="fas fa-tools me-2"></i>Maintenance Reports
+          </a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#">
+            <i class="fas fa-cog me-2"></i>Report Settings
+          </a></li>
+        </ul>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="{% url 'user_list' %}">
@@ -346,6 +407,57 @@
   <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
   <script src="{% static 'js/all.min.js' %}"></script>
   <script src="{% static 'js/main.js' %}"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+  
+  <script>
+    // Set active navigation item based on current URL
+    document.addEventListener("DOMContentLoaded", function() {
+      const currentUrl = window.location.pathname;
+      
+      // Get all nav links
+      const navLinks = document.querySelectorAll('.nav-link');
+      
+      // Mark the active link
+      navLinks.forEach(link => {
+        // Remove active class from all
+        link.classList.remove('active');
+        
+        // Skip the dropdown toggle itself from being marked active
+        if (link.classList.contains('dropdown-toggle')) return;
+        
+        // Check if the link's href matches the current URL
+        const href = link.getAttribute('href');
+        if (href && currentUrl.includes(href) && href !== '/') {
+          link.classList.add('active');
+          
+          // If it's in a dropdown, expand the dropdown
+          const dropdown = link.closest('.dropdown');
+          if (dropdown) {
+            dropdown.querySelector('.dropdown-toggle').classList.add('active');
+          }
+        } else if (currentUrl === '/' && href === '/') {
+          link.classList.add('active');
+        }
+      });
+      
+      // Also check dropdown items
+      const dropdownItems = document.querySelectorAll('.dropdown-item');
+      dropdownItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (href && currentUrl.includes(href)) {
+          item.classList.add('active');
+          // Activate the parent dropdown toggle
+          const dropdown = item.closest('.dropdown');
+          if (dropdown) {
+            dropdown.querySelector('.dropdown-toggle').classList.add('active');
+          }
+        }
+      });
+    });
+  </script>
+
   {% block extra_js %}{% endblock extra_js %}
 </body>
 

@@ -23,18 +23,10 @@ from .views import (
     maintenance_create,
     maintenance_edit,
     maintenance_delete,
-    # Reporting views
-    report_list,
-    report_template_create,
-    report_template_edit,
-    report_template_delete,
-    report_generate,
-    report_save,
-    report_view,
-    report_export,
-    report_delete,
-    report_form,
-    report_refresh
+    contract_analytics_view,
+    invoice_reports_view,
+    vessel_performance_view,
+    maintenance_report_view,
 )
 
 # URL patterns for the ShipOps application
@@ -65,7 +57,10 @@ urlpatterns = [
     path('vessel/<int:vessel_id>/', vessel_detail, name='vessel_detail'),
     path('vessel/edit/<int:vessel_id>/', vessel_edit, name='vessel_edit'),
     path('vessel/delete/<int:vessel_id>/', vessel_delete, name='vessel_delete'),
-    
+    path('reports/contract-analytics/', contract_analytics_view, name='contract_analytics'),
+    path('reports/invoice-reports/', invoice_reports_view, name='invoice_reports'),
+    path('reports/vessel-performance/', vessel_performance_view, name='vessel_performance'),
+    path('reports/maintenance-report/', maintenance_report_view, name='maintenance_report'),
     # Document management URLs
     path('vessel/<int:vessel_id>/document/new/', document_create, name='document_create'),
     path('document/<int:document_id>/delete/', document_delete, name='document_delete'),
@@ -75,22 +70,5 @@ urlpatterns = [
     path('maintenance/<int:maintenance_id>/edit/', maintenance_edit, name='maintenance_edit'),
     path('maintenance/<int:maintenance_id>/delete/', maintenance_delete, name='maintenance_delete'),
     
-    # Reporting & Analytics URLs
-    path('reports/', report_list, name='report-list'),
-    
-    # Report template URLs
-    path('reports/template/new/', report_template_create, name='report_template_create'),
-    path('reports/template/edit/<int:template_id>/', report_template_edit, name='report_template_edit'),
-    path('reports/template/delete/<int:template_id>/', report_template_delete, name='report_template_delete'),
-    
-    # Report generation and management URLs
-    path('reports/generate/', report_generate, name='report_generate_custom'),
-    path('reports/generate/<int:template_id>/', report_generate, name='report_generate'),
-    path('reports/new/', report_form, name='report_form'),
-    path('reports/edit/<int:report_id>/', report_form, name='report_edit'),
-    path('reports/save/', report_save, name='report_save'),
-    path('reports/view/<int:report_id>/', report_view, name='report_view'),
-    path('reports/export/<int:report_id>/', report_export, name='report_export'),
-    path('reports/delete/<int:report_id>/', report_delete, name='report_delete'),
-    path('reports/refresh/<int:report_id>/', report_refresh, name='report_refresh'),
+    # Old Reporting & Analytics URLs (will be replaced)
 ]

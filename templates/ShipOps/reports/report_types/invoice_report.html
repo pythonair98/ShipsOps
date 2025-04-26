@@ -1,0 +1,426 @@
+{% load custom_filters %}
+
+<div class="row mb-4">
+    <!-- Summary Cards -->
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Total Invoices</h5>
+                <p class="summary-number">{{ invoice_data.total_invoices }}</p>
+                <p class="summary-label">All invoices</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Pending</h5>
+                <p class="summary-number">{{ invoice_data.pending_invoices }}</p>
+                <p class="summary-label">Awaiting payment</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Overdue</h5>
+                <p class="summary-number">{{ invoice_data.overdue_invoices }}</p>
+                <p class="summary-label">Past due date</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Outstanding Amount</h5>
+                <p class="summary-number">{{ invoice_data.outstanding_amount|floatformat:0 }}</p>
+                <p class="summary-label">{{ invoice_data.currency }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if report_execution.report.show_chart and invoice_data.chart_data %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Invoice Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="invoiceStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Monthly Invoice Amounts</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="invoiceAmountChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Status distribution chart
+        const statusCtx = document.getElementById('invoiceStatusChart').getContext('2d');
+        const statusLabels = {{ invoice_data.status_labels|safe }};
+        const statusData = {{ invoice_data.status_data|safe }};
+        
+        const statusColors = [
+            '#28a745',  // Paid
+            '#ffc107',  // Pending
+            '#dc3545',  // Overdue
+            '#17a2b8',  // Partially Paid
+            '#6c757d'   // Other
+        ];
+        
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: statusColors.slice(0, statusData.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                let total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                let percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Monthly invoice amounts chart
+        const amountCtx = document.getElementById('invoiceAmountChart').getContext('2d');
+        const monthLabels = {{ invoice_data.month_labels|safe }};
+        const invoicedData = {{ invoice_data.invoiced_amounts|safe }};
+        const paidData = {{ invoice_data.paid_amounts|safe }};
+        
+        new Chart(amountCtx, {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: 'Invoiced',
+                        data: invoicedData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Paid',
+                        data: paidData,
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Amount (' + "{{ invoice_data.currency }}" + ')'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Invoice List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="invoiceTable">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Client</th>
+                                <th>Contract</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Amount</th>
+                                <th>Paid</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoice_data.invoices %}
+                            <tr class="{% if invoice.status == 'Overdue' %}table-danger{% elif invoice.status == 'Paid' %}table-success{% endif %}">
+                                <td>{{ invoice.invoice_number }}</td>
+                                <td>{{ invoice.client_name }}</td>
+                                <td>{{ invoice.contract_reference }}</td>
+                                <td>{{ invoice.issue_date }}</td>
+                                <td>{{ invoice.due_date }}</td>
+                                <td>{{ invoice.amount|floatformat:2 }} {{ invoice_data.currency }}</td>
+                                <td>{{ invoice.paid_amount|floatformat:2 }} {{ invoice_data.currency }}</td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if invoice.status == 'Paid' %}bg-success
+                                        {% elif invoice.status == 'Pending' %}bg-warning
+                                        {% elif invoice.status == 'Overdue' %}bg-danger
+                                        {% elif invoice.status == 'Partially Paid' %}bg-info
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ invoice.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        {% if invoice.status != 'Paid' %}
+                                        <button class="btn btn-sm btn-success payment-btn" data-invoice-id="{{ invoice.id }}" data-amount="{{ invoice.amount|subtract:invoice.paid_amount }}">
+                                            <i class="fas fa-money-bill-wave"></i> Payment
+                                        </button>
+                                        {% endif %}
+                                        <a href="{% url 'invoice_pdf' invoice.id %}" class="btn btn-sm btn-secondary" target="_blank">
+                                            <i class="fas fa-file-pdf"></i> PDF
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if invoice_data.overdue_invoices_list %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Overdue Invoices</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="overdueTable">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Client</th>
+                                <th>Due Date</th>
+                                <th>Days Overdue</th>
+                                <th>Amount Due</th>
+                                <th>Contact Info</th>
+                                <th>Last Reminder</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoice_data.overdue_invoices_list %}
+                            <tr>
+                                <td>{{ invoice.invoice_number }}</td>
+                                <td>{{ invoice.client_name }}</td>
+                                <td>{{ invoice.due_date }}</td>
+                                <td>
+                                    <span class="
+                                        {% if invoice.days_overdue > 30 %}text-danger font-weight-bold
+                                        {% elif invoice.days_overdue > 15 %}text-danger
+                                        {% else %}text-warning{% endif %}">
+                                        {{ invoice.days_overdue }} days
+                                    </span>
+                                </td>
+                                <td>{{ invoice.amount_due|floatformat:2 }} {{ invoice_data.currency }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" data-toggle="tooltip" data-html="true" title="
+                                        Name: {{ invoice.contact_name }}<br>
+                                        Email: {{ invoice.contact_email }}<br>
+                                        Phone: {{ invoice.contact_phone }}
+                                    ">
+                                        <i class="fas fa-address-card"></i> Contact
+                                    </button>
+                                </td>
+                                <td>{{ invoice.last_reminder|default:'None' }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-warning reminder-btn" data-invoice-id="{{ invoice.id }}">
+                                            <i class="fas fa-envelope"></i> Send Reminder
+                                        </button>
+                                        <button class="btn btn-sm btn-success payment-btn" data-invoice-id="{{ invoice.id }}" data-amount="{{ invoice.amount_due }}">
+                                            <i class="fas fa-money-bill-wave"></i> Payment
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if invoice_data.payment_summary %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Payment Summary by Client</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="paymentSummaryTable">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Total Invoiced</th>
+                                <th>Total Paid</th>
+                                <th>Outstanding</th>
+                                <th>Avg. Days to Pay</th>
+                                <th>Payment History</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for client in invoice_data.payment_summary %}
+                            <tr>
+                                <td>{{ client.name }}</td>
+                                <td>{{ client.total_invoiced|floatformat:2 }} {{ invoice_data.currency }}</td>
+                                <td>{{ client.total_paid|floatformat:2 }} {{ invoice_data.currency }}</td>
+                                <td>{{ client.outstanding|floatformat:2 }} {{ invoice_data.currency }}</td>
+                                <td>{{ client.avg_days_to_pay|floatformat:1 }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        {% for segment in client.payment_history %}
+                                        <div class="progress-bar 
+                                            {% if segment.status == 'On Time' %}bg-success
+                                            {% elif segment.status == 'Late' %}bg-warning
+                                            {% elif segment.status == 'Very Late' %}bg-danger
+                                            {% else %}bg-info{% endif %}" 
+                                            role="progressbar" 
+                                            style="width: {{ segment.percentage }}%"
+                                            data-toggle="tooltip" 
+                                            title="{{ segment.status }}: {{ segment.percentage }}%">
+                                            {{ segment.percentage }}%
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+        
+        // Initialize DataTables
+        $('#invoiceTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        
+        {% if invoice_data.overdue_invoices_list %}
+        $('#overdueTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        
+        // Set up reminder functionality
+        $('.reminder-btn').on('click', function() {
+            const invoiceId = $(this).data('invoice-id');
+            window.location.href = "{% url 'send_invoice_reminder' %}?invoice_id=" + invoiceId;
+        });
+        {% endif %}
+        
+        {% if invoice_data.payment_summary %}
+        $('#paymentSummaryTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        {% endif %}
+        
+        // Set up payment record functionality
+        $('.payment-btn').on('click', function() {
+            const invoiceId = $(this).data('invoice-id');
+            const amount = $(this).data('amount');
+            window.location.href = "{% url 'record_payment' %}?invoice_id=" + invoiceId + "&amount=" + amount;
+        });
+    });
+</script> 

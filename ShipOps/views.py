@@ -1,27 +1,21 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from datetime import timedelta
+
 from django.contrib import messages
-from .models import (
-    Contract, 
-    Invoice, 
-    Vessel, 
-    VesselDocument, 
-    VesselMaintenance,
-    ReportTemplate,
-    SavedReport,
-    Dashboard,
-    AnalyticsLog
-)
-from .forms import ContractForm, InvoiceForm
-from django.db import models
-from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.db.models import Count, Q, Sum
-from datetime import timedelta
+from django.db import models
+from django.db.models import Q, Sum, Avg, Count
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 import json
-import csv
-from django.http import HttpResponse
-import xlsxwriter
+from .forms import ContractForm, InvoiceForm
+from .models import (
+    Contract,
+    Invoice,
+    Vessel,
+    VesselDocument,
+    VesselMaintenance,
+)
 
 
 @login_required
@@ -29,14 +23,29 @@ def contract_list(request):
     """
     View to display a list of all contracts.
 
-    Retrieves all Contract objects from the database and passes them to the 'contract_list.html' template.
+    Retrieves all Contract objects from the database, with optional filtering 
+    by state, and passes them to the 'contract_list.html' template.
     Also initializes a blank ContractForm for adding a new contract.
 
     :param request: The HTTP request object.
     :return: Rendered 'contract_list.html' template with contract data and form.
     """
+    # Get state filter from query params
+    state_filter = request.GET.get('state')
+    
     # Get all contracts ordered by most recent first
     contracts = Contract.objects.all().order_by('-created_at')
+    
+    # Apply state filter if provided
+    if state_filter and state_filter.isdigit():
+        contracts = contracts.filter(state=int(state_filter))
+    
+    # Define contract states for the template
+    contract_states = [
+        (0, 'Pending'),
+        (1, 'Finance'),
+        (2, 'Billed')
+    ]
     
     # Initialize an empty contract form
     form = ContractForm()
@@ -45,6 +54,8 @@ def contract_list(request):
     context = {
         'contracts': contracts,
         'form': form,
+        'contract_states': contract_states,
+        'current_state': state_filter,
         'page_title': 'Contract Management'
     }
     
@@ -133,27 +144,6 @@ def invoice_new(request):
     }
     
     return render(request, 'ShipOps/invoice_edit.html', context)
-
-def contract_list(request):
-    """
-    View to display a list of all contracts.
-    
-    Retrieves all contracts from the database and displays them in a list view.
-    
-    :param request: The HTTP request object.
-    :return: Rendered 'contract_list.html' template with all contracts.
-    """
-    contracts = Contract.objects.all()
-    form = ContractForm()
-    
-    context = {
-        'contracts': contracts,
-        'form': form,
-        'page_title': 'Contract List'
-    }
-    
-    return render(request, 'ShipOps/contract_list.html', context)
-
 
 @login_required(login_url='login')
 def contract_edit(request, contract_id):
@@ -840,1116 +830,504 @@ def maintenance_delete(request, maintenance_id):
     if request.method == 'POST':
         maintenance.delete()
         messages.success(request, f'Maintenance record has been deleted successfully.')
-        return redirect('vessel_detail', vessel_id=vessel_id)
-    
-    # For GET request, ask for confirmation
-    return render(request, 'ShipOps/maintenance_confirm_delete.html', {'maintenance': maintenance})
+        return redirect('vessel_list')
 
-# ----- Reporting & Analytics Views -----
+
+def contract_analytics_view(request):
+    # Basic contract counts
+    total_contracts = Contract.objects.count()
+    total_invoices = Invoice.objects.count()
+
+    # Status distribution
+    status_distribution = Contract.objects.values('state').annotate(count=Count('id'))
+
+    # Invoice status distribution
+    invoice_status_distribution = Invoice.objects.values('status').annotate(count=Count('id'))
+    
+    # Get payment statistics from invoices
+    total_invoiced_usd = Invoice.objects.aggregate(total=Sum('price_usd'))['total'] or 0
+    total_invoiced_aed = Invoice.objects.aggregate(total=Sum('aed_price'))['total'] or 0
+    avg_invoice_usd = Invoice.objects.aggregate(avg=Avg('price_usd'))['avg'] or 0
+    
+    # Contracts with and without invoices
+    contracts_with_invoice = Contract.objects.filter(invoice_obj__isnull=False).count()
+    contracts_without_invoice = Contract.objects.filter(invoice_obj__isnull=True).count()
+    
+    # Calculate invoice percentage
+    invoice_percentage = 0
+    if total_contracts > 0:
+        invoice_percentage = (contracts_with_invoice / total_contracts) * 100
+
+    # Expiring contracts (next 30 days)
+    today = timezone.now().date()
+    thirty_days_later = today + timedelta(days=30)
+    expiring_soon = Contract.objects.filter(contract_end__range=[today, thirty_days_later]).order_by('contract_end')
+
+    # Overdue invoices
+    overdue_invoices = Invoice.objects.filter(
+        status=Invoice.STATUS_PENDING, 
+        due_date__lt=today
+    ).order_by('due_date')
+    
+    # If no overdue invoices found, check if invoices are being marked as overdue properly
+    if not overdue_invoices.exists():
+        # Try a broader search - just find invoices with past due dates regardless of status
+        overdue_invoices = Invoice.objects.filter(
+            due_date__lt=today
+        ).order_by('due_date')
+        
+        # Also update any pending invoices that are past due to STATUS_OVERDUE
+        pending_overdue = Invoice.objects.filter(
+            status=Invoice.STATUS_PENDING,
+            due_date__lt=today
+        )
+        for invoice in pending_overdue:
+            invoice.status = Invoice.STATUS_OVERDUE
+            invoice.save()
+    else:
+        # Update all pending invoices with past due dates to STATUS_OVERDUE
+        for invoice in overdue_invoices:
+            if invoice.status == Invoice.STATUS_PENDING:
+                invoice.status = Invoice.STATUS_OVERDUE
+                invoice.save()
+    
+    # Get all invoices that are past due regardless of status for the table display
+    all_past_due_invoices = Invoice.objects.filter(due_date__lt=today).order_by('due_date')
+    
+    # Update the invoice status distribution after updating statuses
+    invoice_status_distribution = Invoice.objects.values('status').annotate(count=Count('id'))
+
+    # Contracts by vessel
+    contracts_by_vessel = Contract.objects.values('vessel').annotate(count=Count('id'))
+
+    # Monthly contract counts for the past 12 months
+    last_12_months = timezone.now() - timedelta(days=365)
+    monthly_contracts = Contract.objects.filter(
+        contract_start__gte=last_12_months
+    ).values('contract_start__year', 'contract_start__month').annotate(
+        count=Count('id')
+    ).order_by('contract_start__year', 'contract_start__month')
+
+    # Monthly invoice data
+    monthly_invoices = Invoice.objects.filter(
+        created_at__gte=last_12_months
+    ).values('created_at__year', 'created_at__month').annotate(
+        count=Count('id'),
+        total_usd=Sum('price_usd')
+    ).order_by('created_at__year', 'created_at__month')
+
+    # Convert to chart-friendly format
+    months = []
+    contract_counts = []
+    invoice_counts = []
+    invoice_amounts = []
+    
+    # Create month labels (last 12 months)
+    for i in range(12):
+        date = timezone.now() - timedelta(days=30 * (11 - i))
+        month_name = f"{date.year}-{date.month}"
+        months.append(month_name)
+        contract_counts.append(0)  # Initialize with zeros
+        invoice_counts.append(0)
+        invoice_amounts.append(0)
+    
+    # Fill in actual contract counts
+    for item in monthly_contracts:
+        month_name = f"{item['contract_start__year']}-{item['contract_start__month']}"
+        if month_name in months:
+            idx = months.index(month_name)
+            contract_counts[idx] = item['count']
+    
+    # Fill in actual invoice counts and amounts
+    for item in monthly_invoices:
+        month_name = f"{item['created_at__year']}-{item['created_at__month']}"
+        if month_name in months:
+            idx = months.index(month_name)
+            invoice_counts[idx] = item['count']
+            invoice_amounts[idx] = float(item['total_usd'] or 0)
+
+    # For status distribution chart
+    status_labels = [item['state'] for item in status_distribution]
+    status_counts = [item['count'] for item in status_distribution]
+    
+    # For invoice status chart
+    invoice_status_labels = [item['status'] for item in invoice_status_distribution]
+    invoice_status_counts = [item['count'] for item in invoice_status_distribution]
+    
+    # Ensure we have some data for charts
+    if not status_labels:
+        status_labels = [0, 1, 2]
+        status_counts = [0, 0, 0]
+    
+    # Convert to JSON safely
+    def json_default(obj):
+        if isinstance(obj, (int, float, str, bool, type(None))):
+            return obj
+        return str(obj)
+    
+    context = {
+        'total_contracts': total_contracts,
+        'total_invoices': total_invoices,
+        'total_invoiced_usd': total_invoiced_usd,
+        'total_invoiced_aed': total_invoiced_aed,
+        'avg_invoice_usd': avg_invoice_usd,
+        'invoice_percentage': round(invoice_percentage, 2),
+        'contracts_with_invoice': contracts_with_invoice,
+        'contracts_without_invoice': contracts_without_invoice,
+        'expiring_soon': expiring_soon,
+        'overdue_invoices': all_past_due_invoices,
+        'status_distribution': status_distribution,
+        'invoice_status_distribution': invoice_status_distribution,
+        'contracts_by_vessel': contracts_by_vessel,
+        'months_json': json.dumps(months, default=json_default),
+        'contract_counts_json': json.dumps(contract_counts, default=json_default),
+        'invoice_counts_json': json.dumps(invoice_counts, default=json_default),
+        'invoice_amounts_json': json.dumps(invoice_amounts, default=json_default),
+        'status_labels_json': json.dumps(status_labels, default=json_default),
+        'status_counts_json': json.dumps(status_counts, default=json_default),
+        'invoice_status_labels_json': json.dumps(invoice_status_labels, default=json_default),
+        'invoice_status_counts_json': json.dumps(invoice_status_counts, default=json_default),
+    }
+
+    return render(request, 'ShipOps/contract_analytics.html', context)
+
 
 @login_required
-def report_list(request):
-    """View to list all report templates and saved reports"""
-    # Get report templates
-    templates = ReportTemplate.objects.filter(
-        models.Q(created_by=request.user) | models.Q(is_public=True)
-    ).order_by('-updated_at')
+def invoice_reports_view(request):
+    """View for comprehensive invoice reporting and analysis."""
+    # Basic invoice metrics
+    today = timezone.now().date()
     
-    # Get saved reports
-    saved_reports = SavedReport.objects.filter(
-        created_by=request.user
-    ).order_by('-created_at')
+    # Get invoice counts by status
+    total_invoices = Invoice.objects.count()
+    pending_invoices = Invoice.objects.filter(status=Invoice.STATUS_PENDING).count()
+    paid_invoices = Invoice.objects.filter(status=Invoice.STATUS_PAID).count()
+    overdue_invoices = Invoice.objects.filter(status=Invoice.STATUS_OVERDUE).count()
+    cancelled_invoices = Invoice.objects.filter(status=Invoice.STATUS_CANCELLED).count()
     
-    # Log the action
-    AnalyticsLog.objects.create(
-        user=request.user,
-        action='view_report',
-        details={'page': 'report-list'}
+    # Financial metrics
+    total_invoiced_usd = Invoice.objects.aggregate(total=Sum('price_usd'))['total'] or 0
+    total_invoiced_aed = Invoice.objects.aggregate(total=Sum('aed_price'))['total'] or 0
+    
+    # Paid vs Unpaid amounts
+    paid_amount_usd = Invoice.objects.filter(status=Invoice.STATUS_PAID).aggregate(total=Sum('price_usd'))['total'] or 0
+    unpaid_amount_usd = total_invoiced_usd - paid_amount_usd
+    
+    # Payment metrics
+    avg_days_to_payment = 0
+    paid_invoices_with_dates = Invoice.objects.filter(
+        status=Invoice.STATUS_PAID, 
+        due_date__isnull=False
     )
     
-    context = {
-        'templates': templates,
-        'saved_reports': saved_reports,
-        'report_types': dict(ReportTemplate._meta.get_field('report_type').choices)
-    }
-    
-    return render(request, 'ShipOps/reports/reports_list.html', context)
-
-@login_required
-def report_template_create(request):
-    """View to create a new report template"""
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        description = request.POST.get('description', '')
-        report_type = request.POST.get('report_type')
-        is_public = request.POST.get('is_public') == 'on'
+    # Calculate average days to payment for paid invoices
+    if paid_invoices_with_dates.exists():
+        total_days = 0
+        count = 0
+        for invoice in paid_invoices_with_dates:
+            if invoice.due_date and invoice.created_at:
+                # Assuming payment date is when status was changed to PAID
+                # For simplicity, using updated_at as proxy for payment date
+                payment_delay = (invoice.due_date - invoice.created_at.date()).days
+                total_days += payment_delay
+                count += 1
         
-        # Get configuration fields based on the report type
-        configuration = {}
-        
-        if report_type == 'contract':
-            configuration['fields'] = request.POST.getlist('contract_fields')
-            configuration['filters'] = {
-                'date_range': request.POST.get('contract_date_range') == 'on',
-                'state': request.POST.get('contract_state') == 'on',
-                'charterer': request.POST.get('contract_charterer') == 'on',
-                'vessel': request.POST.get('contract_vessel') == 'on'
-            }
-            configuration['grouping'] = request.POST.get('contract_grouping', '')
-            
-        elif report_type == 'invoice':
-            configuration['fields'] = request.POST.getlist('invoice_fields')
-            configuration['filters'] = {
-                'date_range': request.POST.get('invoice_date_range') == 'on',
-                'status': request.POST.get('invoice_status') == 'on',
-                'currency': request.POST.get('invoice_currency') == 'on',
-                'contract': request.POST.get('invoice_contract') == 'on'
-            }
-            configuration['grouping'] = request.POST.get('invoice_grouping', '')
-            
-        elif report_type == 'vessel':
-            configuration['fields'] = request.POST.getlist('vessel_fields')
-            configuration['filters'] = {
-                'status': request.POST.get('vessel_status') == 'on',
-                'type': request.POST.get('vessel_type') == 'on',
-                'flag': request.POST.get('vessel_flag') == 'on'
-            }
-            configuration['grouping'] = request.POST.get('vessel_grouping', '')
-            
-        elif report_type == 'financial':
-            configuration['chart_type'] = request.POST.get('chart_type', 'bar')
-            configuration['time_period'] = request.POST.get('time_period', 'monthly')
-            configuration['metrics'] = request.POST.getlist('financial_metrics')
-            configuration['currency'] = request.POST.get('currency', 'USD')
-            
-        # Create the template
-        template = ReportTemplate(
-            name=name,
-            description=description,
-            report_type=report_type,
-            created_by=request.user,
-            is_public=is_public,
-            configuration=configuration
-        )
-        template.save()
-        
-        # Log the action
-        AnalyticsLog.objects.create(
-            user=request.user,
-            action='create_report',
-            details={'template_id': template.id, 'report_type': report_type}
-        )
-        
-        messages.success(request, f'Report template "{name}" has been created successfully.')
-        return redirect('report_generate', template_id=template.id)
+        if count > 0:
+            avg_days_to_payment = total_days / count
     
-    # Prepare context for the form
-    context = {
-        'report_types': ReportTemplate._meta.get_field('report_type').choices,
-        'contract_fields': [
-            ('id', 'Contract ID'),
-            ('charterer', 'Charterer'),
-            ('vessel', 'Vessel'),
-            ('owner', 'Owner'),
-            ('start_date', 'Start Date'),
-            ('end_date', 'End Date'),
-            ('state', 'State'),
-            ('created_at', 'Created Date')
-        ],
-        'invoice_fields': [
-            ('id', 'Invoice ID'),
-            ('contract', 'Contract'),
-            ('invoice_number', 'Invoice Number'),
-            ('invoice_date', 'Invoice Date'),
-            ('due_date', 'Due Date'),
-            ('invoice_amount', 'Amount'),
-            ('invoice_currency', 'Currency'),
-            ('status', 'Status')
-        ],
-        'vessel_fields': [
-            ('name', 'Vessel Name'),
-            ('imo_number', 'IMO Number'),
-            ('vessel_type', 'Vessel Type'),
-            ('built_year', 'Built Year'),
-            ('flag', 'Flag'),
-            ('status', 'Status'),
-            ('owner', 'Owner'),
-            ('operator', 'Operator')
-        ],
-        'financial_metrics': [
-            ('contract_value', 'Contract Value'),
-            ('invoice_amount', 'Invoice Amount'),
-            ('paid_amount', 'Paid Amount'),
-            ('outstanding_amount', 'Outstanding Amount'),
-            ('maintenance_cost', 'Maintenance Cost')
-        ]
-    }
+    # Get all invoices for time-based analysis
+    all_invoices = Invoice.objects.all().order_by('created_at')
     
-    return render(request, 'ShipOps/reports/report_template_form.html', context)
-
-@login_required
-def report_generate(request, template_id=None):
-    """View to generate a report based on a template or custom parameters"""
-    template = None
-    if template_id:
-        template = get_object_or_404(ReportTemplate, id=template_id)
-        # Check if user has access to the template
-        if not (template.created_by == request.user or template.is_public):
-            messages.error(request, "You don't have permission to access this report template.")
-            return redirect('report-list')
+    # Monthly invoice data (last 12 months)
+    last_12_months = timezone.now() - timedelta(days=365)
+    monthly_invoices = Invoice.objects.filter(
+        created_at__gte=last_12_months
+    ).values('created_at__year', 'created_at__month').annotate(
+        count=Count('id'),
+        total_usd=Sum('price_usd'),
+        paid_count=Count('id', filter=models.Q(status=Invoice.STATUS_PAID)),
+        paid_amount=Sum('price_usd', filter=models.Q(status=Invoice.STATUS_PAID))
+    ).order_by('created_at__year', 'created_at__month')
     
-    # Default report type is contract if no template is provided
-    report_type = template.report_type if template else request.GET.get('report_type', 'contract')
+    # Create month labels and initialize data arrays
+    months = []
+    invoice_counts = []
+    invoice_amounts = []
+    paid_counts = []
+    paid_amounts = []
     
-    # Initialize variables for the report data
-    data = []
-    chart_data = {}
-    parameters = {}
+    # Create month labels (last 12 months)
+    for i in range(12):
+        date = timezone.now() - timedelta(days=30 * (11 - i))
+        month_name = f"{date.year}-{date.month}"
+        months.append(month_name)
+        invoice_counts.append(0)
+        invoice_amounts.append(0)
+        paid_counts.append(0)
+        paid_amounts.append(0)
     
-    if request.method == 'GET' and ('generate' in request.GET or template):
-        # Extract parameters from the request or template
-        if template:
-            # Use template configuration as defaults
-            configuration = template.configuration
-            start_date = request.GET.get('start_date', '')
-            end_date = request.GET.get('end_date', '')
-            status_filter = request.GET.get('status', '')
-            grouping = configuration.get('grouping', '')
-            
-            # Store parameters for potential saving
-            parameters = {
-                'template_id': template.id,
-                'start_date': start_date,
-                'end_date': end_date,
-                'status': status_filter,
-                'grouping': grouping
-            }
+    # Fill in actual invoice data
+    for item in monthly_invoices:
+        month_name = f"{item['created_at__year']}-{item['created_at__month']}"
+        if month_name in months:
+            idx = months.index(month_name)
+            invoice_counts[idx] = item['count']
+            invoice_amounts[idx] = float(item['total_usd'] or 0)
+            paid_counts[idx] = item['paid_count'] or 0
+            paid_amounts[idx] = float(item['paid_amount'] or 0)
+    
+    # Top contracts by invoice value
+    top_invoices = Invoice.objects.order_by('-price_usd')[:10]
+    
+    # Payment efficiency by month (% of invoices paid)
+    payment_efficiency = []
+    for i in range(len(months)):
+        if invoice_counts[i] > 0:
+            efficiency = (paid_counts[i] / invoice_counts[i]) * 100
         else:
-            # No template, use request parameters directly
-            configuration = {
-                'fields': request.GET.getlist('fields'),
-                'filters': {},
-                'grouping': request.GET.get('grouping', '')
-            }
-            start_date = request.GET.get('start_date', '')
-            end_date = request.GET.get('end_date', '')
-            status_filter = request.GET.get('status', '')
-            grouping = request.GET.get('grouping', '')
-            
-            # Store parameters for potential saving
-            parameters = {
-                'report_type': report_type,
-                'fields': request.GET.getlist('fields'),
-                'start_date': start_date,
-                'end_date': end_date,
-                'status': status_filter,
-                'grouping': grouping
-            }
-        
-        # Generate report data based on the report type
-        if report_type == 'contract':
-            queryset = Contract.objects.all()
-            
-            # Apply filters
-            if start_date and end_date:
-                queryset = queryset.filter(
-                    created_at__date__gte=start_date,
-                    created_at__date__lte=end_date
-                )
-                
-            if status_filter:
-                queryset = queryset.filter(state=status_filter)
-            
-            # Apply grouping if specified
-            if grouping == 'charterer':
-                data = list(queryset.values('charterer').annotate(
-                    count=models.Count('id'),
-                    total_value=models.Sum('price_usd')
-                ).order_by('-count'))
-                
-                # Prepare chart data
-                chart_data = {
-                    'labels': [item['charterer'] for item in data],
-                    'datasets': [
-                        {
-                            'label': 'Number of Contracts',
-                            'data': [item['count'] for item in data]
-                        }
-                    ]
-                }
-            elif grouping == 'vessel':
-                data = list(queryset.values('vessel').annotate(
-                    count=models.Count('id'),
-                    total_value=models.Sum('price_usd')
-                ).order_by('-count'))
-                
-                # Prepare chart data
-                chart_data = {
-                    'labels': [item['vessel'] for item in data],
-                    'datasets': [
-                        {
-                            'label': 'Number of Contracts',
-                            'data': [item['count'] for item in data]
-                        }
-                    ]
-                }
-            elif grouping == 'month':
-                # Group by month
-                month_data = {}
-                for contract in queryset:
-                    month_key = contract.created_at.strftime('%Y-%m')
-                    month_name = contract.created_at.strftime('%b %Y')
-                    
-                    if month_key not in month_data:
-                        month_data[month_key] = {
-                            'month': month_name,
-                            'count': 0,
-                            'total_value': 0
-                        }
-                    
-                    month_data[month_key]['count'] += 1
-                    month_data[month_key]['total_value'] += contract.price_usd
-                
-                # Convert to list and sort by month
-                data = list(month_data.values())
-                data.sort(key=lambda x: x['month'])
-                
-                # Prepare chart data
-                chart_data = {
-                    'labels': [item['month'] for item in data],
-                    'datasets': [
-                        {
-                            'label': 'Number of Contracts',
-                            'data': [item['count'] for item in data]
-                        }
-                    ]
-                }
-            else:
-                # No grouping, just list the contracts
-                data = list(queryset.values())
-        
-        elif report_type == 'invoice':
-            # Similar implementation for invoice reports
-            queryset = Invoice.objects.all()
-            
-            # Apply filters
-            if start_date and end_date:
-                queryset = queryset.filter(
-                    created_at__date__gte=start_date,
-                    created_at__date__lte=end_date
-                )
-                
-            if status_filter:
-                queryset = queryset.filter(status=status_filter)
-            
-            # Apply grouping if specified
-            if grouping == 'contract':
-                data = list(queryset.values('contract__id', 'contract__charterer').annotate(
-                    count=models.Count('id'),
-                    total_amount=models.Sum('invoice_amount')
-                ).order_by('-count'))
-            elif grouping == 'month':
-                # Group by month
-                month_data = {}
-                for invoice in queryset:
-                    month_key = invoice.created_at.strftime('%Y-%m')
-                    month_name = invoice.created_at.strftime('%b %Y')
-                    
-                    if month_key not in month_data:
-                        month_data[month_key] = {
-                            'month': month_name,
-                            'count': 0,
-                            'total_amount': 0
-                        }
-                    
-                    month_data[month_key]['count'] += 1
-                    if invoice.invoice_currency == 'USD':
-                        month_data[month_key]['total_amount'] += invoice.invoice_amount
-                
-                # Convert to list and sort by month
-                data = list(month_data.values())
-                data.sort(key=lambda x: x['month'])
-                
-                # Prepare chart data
-                chart_data = {
-                    'labels': [item['month'] for item in data],
-                    'datasets': [
-                        {
-                            'label': 'Number of Invoices',
-                            'data': [item['count'] for item in data],
-                            'backgroundColor': 'rgba(54, 162, 235, 0.5)'
-                        },
-                        {
-                            'label': 'Total Amount (USD)',
-                            'data': [item['total_amount'] for item in data],
-                            'backgroundColor': 'rgba(255, 99, 132, 0.5)'
-                        }
-                    ]
-                }
-            else:
-                # No grouping, just list the invoices
-                data = list(queryset.values())
-        
-        elif report_type == 'vessel':
-            # Implementation for vessel reports
-            queryset = Vessel.objects.all()
-            
-            # Apply filters
-            if status_filter:
-                queryset = queryset.filter(status=status_filter)
-            
-            # Apply grouping if specified
-            if grouping == 'status':
-                data = list(queryset.values('status').annotate(
-                    count=models.Count('id')
-                ).order_by('-count'))
-                
-                # Prepare chart data
-                chart_data = {
-                    'labels': [item['status'] for item in data],
-                    'datasets': [
-                        {
-                            'label': 'Number of Vessels',
-                            'data': [item['count'] for item in data],
-                            'backgroundColor': [
-                                'rgba(75, 192, 192, 0.5)',
-                                'rgba(255, 159, 64, 0.5)',
-                                'rgba(255, 99, 132, 0.5)',
-                                'rgba(54, 162, 235, 0.5)',
-                                'rgba(153, 102, 255, 0.5)'
-                            ]
-                        }
-                    ]
-                }
-            elif grouping == 'type':
-                data = list(queryset.values('vessel_type').annotate(
-                    count=models.Count('id')
-                ).order_by('-count'))
-                
-                # Prepare chart data
-                chart_data = {
-                    'labels': [item['vessel_type'] for item in data],
-                    'datasets': [
-                        {
-                            'label': 'Number of Vessels',
-                            'data': [item['count'] for item in data],
-                            'backgroundColor': [
-                                'rgba(75, 192, 192, 0.5)',
-                                'rgba(255, 159, 64, 0.5)',
-                                'rgba(255, 99, 132, 0.5)',
-                                'rgba(54, 162, 235, 0.5)',
-                                'rgba(153, 102, 255, 0.5)',
-                                'rgba(201, 203, 207, 0.5)'
-                            ]
-                        }
-                    ]
-                }
-            else:
-                # No grouping, just list the vessels
-                data = list(queryset.values())
-        
-        # Log the report generation
-        AnalyticsLog.objects.create(
-            user=request.user,
-            action='generate_report',
-            details={
-                'report_type': report_type,
-                'template_id': template.id if template else None,
-                'parameters': parameters
-            }
-        )
+            efficiency = 0
+        payment_efficiency.append(round(efficiency, 2))
     
-    # Prepare context
-    context = {
-        'template': template,
-        'report_type': report_type,
-        'data': data,
-        'chart_data': chart_data,
-        'parameters': parameters,
-        'report_types': dict(ReportTemplate._meta.get_field('report_type').choices)
-    }
-    
-    return render(request, 'ShipOps/reports/report_create.html', context)
-
-@login_required
-def report_save(request):
-    """View to save a generated report"""
-    if request.method != 'POST':
-        return redirect('report-list')
-    
-    # Get report data from the form
-    name = request.POST.get('name')
-    description = request.POST.get('description', '')
-    report_type = request.POST.get('report_type')
-    template_id = request.POST.get('template_id')
-    parameters = json.loads(request.POST.get('parameters', '{}'))
-    data = json.loads(request.POST.get('data', '[]'))
-    
-    # Create file if chart data is available
-    file = None
-    
-    # Create the saved report
-    template = None
-    if template_id:
-        template = get_object_or_404(ReportTemplate, id=template_id)
-    
-    saved_report = SavedReport(
-        name=name,
-        description=description,
-        report_type=report_type,
-        template=template,
-        created_by=request.user,
-        parameters=parameters,
-        data=data,
-        file=file
-    )
-    saved_report.save()
-    
-    # Log the action
-    AnalyticsLog.objects.create(
-        user=request.user,
-        action='save_report',
-        details={'report_id': saved_report.id, 'report_type': report_type}
-    )
-    
-    messages.success(request, f'Report "{name}" has been saved successfully.')
-    return redirect('report_view', report_id=saved_report.id)
-
-@login_required
-def report_view(request, report_id):
-    """View to display a saved report"""
-    report = get_object_or_404(SavedReport, id=report_id)
-    
-    # Check if user has access to the report
-    if report.created_by != request.user:
-        messages.error(request, "You don't have permission to view this report.")
-        return redirect('report-list')
-    
-    # Log the action
-    AnalyticsLog.objects.create(
-        user=request.user,
-        action='view_report',
-        details={'report_id': report.id, 'report_type': report.report_type}
-    )
+    # Convert data to JSON for charts
+    def json_default(obj):
+        if isinstance(obj, (int, float, str, bool, type(None))):
+            return obj
+        return str(obj)
     
     context = {
-        'report': report,
-        'data': report.data,
-        'parameters': report.parameters,
-        'report_types': dict(SavedReport._meta.get_field('report_type').choices)
+        'total_invoices': total_invoices,
+        'pending_invoices': pending_invoices,
+        'paid_invoices': paid_invoices,
+        'overdue_invoices': overdue_invoices,
+        'cancelled_invoices': cancelled_invoices,
+        'total_invoiced_usd': total_invoiced_usd,
+        'total_invoiced_aed': total_invoiced_aed,
+        'paid_amount_usd': paid_amount_usd,
+        'unpaid_amount_usd': unpaid_amount_usd,
+        'avg_days_to_payment': round(avg_days_to_payment, 1),
+        'top_invoices': top_invoices,
+        'months_json': json.dumps(months, default=json_default),
+        'invoice_counts_json': json.dumps(invoice_counts, default=json_default),
+        'invoice_amounts_json': json.dumps(invoice_amounts, default=json_default),
+        'paid_counts_json': json.dumps(paid_counts, default=json_default),
+        'paid_amounts_json': json.dumps(paid_amounts, default=json_default),
+        'payment_efficiency_json': json.dumps(payment_efficiency, default=json_default),
     }
     
-    return render(request, 'ShipOps/reports/report_view.html', context)
+    return render(request, 'ShipOps/invoice_reports.html', context)
+
 
 @login_required
-def report_export(request, report_id):
-    """View to export a report as CSV or Excel"""
-    report = get_object_or_404(SavedReport, id=report_id)
-    
-    # Check if user has access to the report
-    if report.created_by != request.user:
-        messages.error(request, "You don't have permission to export this report.")
-        return redirect('report-list')
-    
-    format_type = request.GET.get('format', 'csv')
-    
-    # Get report data
-    data = report.data
-    
-    if format_type == 'csv':
-        # Create CSV response
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="{report.name}.csv"'
-        
-        # Write CSV data
-        if data:
-            writer = csv.DictWriter(response, fieldnames=data[0].keys())
-            writer.writeheader()
-            for row in data:
-                writer.writerow(row)
-        
-        # Log the action
-        AnalyticsLog.objects.create(
-            user=request.user,
-            action='export_report',
-            details={'report_id': report.id, 'format': 'csv'}
-        )
-        
-        return response
-    
-    elif format_type == 'excel':
-        # Create Excel response
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = f'attachment; filename="{report.name}.xlsx"'
-        
-        # Create workbook
-        workbook = xlsxwriter.Workbook(response)
-        worksheet = workbook.add_worksheet()
-        
-        # Write headers
-        if data:
-            headers = list(data[0].keys())
-            for col, header in enumerate(headers):
-                worksheet.write(0, col, header)
-            
-            # Write data
-            for row, item in enumerate(data, start=1):
-                for col, key in enumerate(headers):
-                    worksheet.write(row, col, item.get(key, ''))
-        
-        workbook.close()
-        
-        # Log the action
-        AnalyticsLog.objects.create(
-            user=request.user,
-            action='export_report',
-            details={'report_id': report.id, 'format': 'excel'}
-        )
-        
-        return response
-    
-    # If not CSV or Excel, redirect back to the report
-    return redirect('report_view', report_id=report.id)
-
-@login_required
-def report_template_edit(request, template_id):
-    """View to edit an existing report template"""
-    template = get_object_or_404(ReportTemplate, id=template_id)
-    
-    # Check if user has permission to edit this template
-    if template.created_by != request.user:
-        messages.error(request, "You don't have permission to edit this template.")
-        return redirect('reports_list')
-    
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        description = request.POST.get('description', '')
-        report_type = request.POST.get('report_type')
-        is_public = request.POST.get('is_public') == 'on'
-        
-        # Get configuration fields based on the report type
-        configuration = {}
-        
-        if report_type == 'contract':
-            configuration['fields'] = request.POST.getlist('contract_fields')
-            configuration['filters'] = {
-                'date_range': request.POST.get('contract_date_range') == 'on',
-                'state': request.POST.get('contract_state') == 'on',
-                'charterer': request.POST.get('contract_charterer') == 'on',
-                'vessel': request.POST.get('contract_vessel') == 'on'
-            }
-            configuration['grouping'] = request.POST.get('contract_grouping', '')
-            
-        elif report_type == 'invoice':
-            configuration['fields'] = request.POST.getlist('invoice_fields')
-            configuration['filters'] = {
-                'date_range': request.POST.get('invoice_date_range') == 'on',
-                'status': request.POST.get('invoice_status') == 'on',
-                'currency': request.POST.get('invoice_currency') == 'on',
-                'contract': request.POST.get('invoice_contract') == 'on'
-            }
-            configuration['grouping'] = request.POST.get('invoice_grouping', '')
-        
-        # Update the template
-        template.name = name
-        template.description = description
-        template.report_type = report_type
-        template.is_public = is_public
-        template.configuration = configuration
-        template.save()
-        
-        # Log the action
-        AnalyticsLog.objects.create(
-            user=request.user,
-            action='edit_report_template',
-            details={'template_id': template.id}
-        )
-        
-        messages.success(request, f'Report template "{name}" has been updated successfully.')
-        return redirect('reports_list')
-    
-    # Prepare context for the form
-    context = {
-        'template': template,
-        'report_types': ReportTemplate._meta.get_field('report_type').choices,
-        'contract_fields': [
-            ('id', 'Contract ID'),
-            ('charterer', 'Charterer'),
-            ('vessel', 'Vessel'),
-            ('owner', 'Owner'),
-            ('start_date', 'Start Date'),
-            ('end_date', 'End Date'),
-            ('state', 'State'),
-            ('created_at', 'Created Date')
-        ],
-        'invoice_fields': [
-            ('id', 'Invoice ID'),
-            ('contract', 'Contract'),
-            ('invoice_number', 'Invoice Number'),
-            ('invoice_date', 'Invoice Date'),
-            ('due_date', 'Due Date'),
-            ('invoice_amount', 'Amount'),
-            ('invoice_currency', 'Currency'),
-            ('status', 'Status')
-        ],
-        'vessel_fields': [
-            ('name', 'Vessel Name'),
-            ('imo_number', 'IMO Number'),
-            ('vessel_type', 'Vessel Type'),
-            ('built_year', 'Built Year'),
-            ('flag', 'Flag'),
-            ('status', 'Status'),
-            ('owner', 'Owner'),
-            ('operator', 'Operator')
-        ]
-    }
-    
-    return render(request, 'ShipOps/reports/report_template_form.html', context)
-
-@login_required
-def report_template_delete(request, template_id):
-    """View to delete a report template"""
-    template = get_object_or_404(ReportTemplate, id=template_id)
-    
-    # Check if user has permission to delete this template
-    if template.created_by != request.user:
-        messages.error(request, "You don't have permission to delete this template.")
-        return redirect('reports_list')
-    
-    if request.method == 'POST':
-        # Log the action
-        AnalyticsLog.objects.create(
-            user=request.user,
-            action='delete_report_template',
-            details={'template_id': template.id, 'template_name': template.name}
-        )
-        
-        # Delete the template
-        template_name = template.name
-        template.delete()
-        
-        messages.success(request, f'Report template "{template_name}" has been deleted successfully.')
-    
-    return redirect('reports_list')
-
-@login_required
-def report_form(request, report_id=None):
-    """View to create a new report or edit an existing one"""
-    report = None
-    if report_id:
-        report = get_object_or_404(SavedReport, id=report_id)
-        
-        # Check if user has permission to edit this report
-        if report.created_by != request.user:
-            messages.error(request, "You don't have permission to edit this report.")
-            return redirect('reports_list')
-    
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        report_type = request.POST.get('report_type')
-        start_date = request.POST.get('start_date') or None
-        end_date = request.POST.get('end_date') or None
-        
-        # Process filters
-        filters = {}
-        for key, value in request.POST.items():
-            if key.startswith('filters['):
-                filter_key = key[8:-1]  # Extract the key between 'filters[' and ']'
-                filters[filter_key] = value
-        
-        # Process chart types
-        chart_types = []
-        for key, value in request.POST.items():
-            if key.startswith('charts[') and value == 'on':
-                chart_type = key[7:-1]  # Extract the chart type between 'charts[' and ']'
-                chart_types.append(chart_type)
-        
-        # Process display options
-        show_summary = request.POST.get('display[summary]') == 'on'
-        show_table = request.POST.get('display[table]') == 'on'
-        
-        # Create parameters object
-        parameters = {
-            'start_date': start_date,
-            'end_date': end_date,
-            'filters': filters,
-            'chart_types': chart_types,
-            'show_summary': show_summary,
-            'show_table': show_table
-        }
-        
-        # Generate report data based on parameters
-        data = generate_report_data(report_type, parameters)
-        
-        if report:
-            # Update existing report
-            report.name = name
-            report.report_type = report_type
-            report.parameters = parameters
-            report.data = data
-            report.save()
-            
-            # Log the action
-            AnalyticsLog.objects.create(
-                user=request.user,
-                action='update_report',
-                details={'report_id': report.id}
-            )
-            
-            messages.success(request, f'Report "{name}" has been updated successfully.')
-        else:
-            # Create new report
-            report = SavedReport(
-                name=name,
-                report_type=report_type,
-                created_by=request.user,
-                parameters=parameters,
-                data=data
-            )
-            report.save()
-            
-            # Log the action
-            AnalyticsLog.objects.create(
-                user=request.user,
-                action='create_report',
-                details={'report_id': report.id}
-            )
-            
-            messages.success(request, f'Report "{name}" has been created successfully.')
-        
-        return redirect('report_view', report_id=report.id)
-    
-    # Prepare context for the form
+def vessel_performance_view(request):
+    """View for vessel performance metrics and analytics."""
+    # Get all vessels
     vessels = Vessel.objects.all()
-    vessel_types = VesselType.objects.all()
+    total_vessels = vessels.count()
+    
+    # Get status counts
+    operational_vessels = vessels.filter(status='operational').count()
+    maintenance_vessels = vessels.filter(status='maintenance').count()
+    repair_vessels = vessels.filter(status='repair').count()
+    docked_vessels = vessels.filter(status='docked').count()
+    unavailable_vessels = vessels.filter(status='unavailable').count()
+    
+    # Calculate fleet availability percentage
+    fleet_availability = 0
+    if total_vessels > 0:
+        fleet_availability = (operational_vessels / total_vessels) * 100
+    
+    # Get vessel types distribution
+    vessel_types = vessels.values('vessel_type').annotate(count=Count('id')).order_by('-count')
+    
+    # Get maintenance data
+    today = timezone.now().date()
+    maintenance_records = VesselMaintenance.objects.all()
+    total_maintenance_count = maintenance_records.count()
+    
+    # Maintenance by status
+    scheduled_maintenance = maintenance_records.filter(status='scheduled').count()
+    in_progress_maintenance = maintenance_records.filter(status='in_progress').count()
+    completed_maintenance = maintenance_records.filter(status='completed').count()
+    delayed_maintenance = maintenance_records.filter(status='delayed').count()
+    
+    # Get upcoming maintenance in next 30 days
+    thirty_days_later = today + timedelta(days=30)
+    upcoming_maintenance = maintenance_records.filter(
+        scheduled_date__range=[today, thirty_days_later]
+    ).order_by('scheduled_date')
+    
+    # Calculate maintenance costs
+    total_maintenance_cost = maintenance_records.aggregate(
+        total=Sum('cost')
+    )['total'] or 0
+    
+    avg_maintenance_cost = 0
+    if total_maintenance_count > 0:
+        avg_maintenance_cost = total_maintenance_cost / total_maintenance_count
+    
+    # Get maintenance costs by vessel
+    vessel_maintenance_costs = VesselMaintenance.objects.values(
+        'vessel__name'
+    ).annotate(
+        total_cost=Sum('cost'),
+        maintenance_count=Count('id')
+    ).order_by('-total_cost')[:10]
+    
+    # Get maintenance costs by month
+    last_12_months = timezone.now() - timedelta(days=365)
+    monthly_maintenance = VesselMaintenance.objects.filter(
+        scheduled_date__gte=last_12_months
+    ).values('scheduled_date__year', 'scheduled_date__month').annotate(
+        count=Count('id'),
+        total_cost=Sum('cost')
+    ).order_by('scheduled_date__year', 'scheduled_date__month')
+    
+    # Create month labels and initialize data arrays
+    months = []
+    maintenance_counts = []
+    maintenance_costs = []
+    
+    # Create month labels (last 12 months)
+    for i in range(12):
+        date = timezone.now() - timedelta(days=30 * (11 - i))
+        month_name = f"{date.year}-{date.month}"
+        months.append(month_name)
+        maintenance_counts.append(0)
+        maintenance_costs.append(0)
+    
+    # Fill in actual maintenance data
+    for item in monthly_maintenance:
+        month_name = f"{item['scheduled_date__year']}-{item['scheduled_date__month']}"
+        if month_name in months:
+            idx = months.index(month_name)
+            maintenance_counts[idx] = item['count']
+            maintenance_costs[idx] = float(item['total_cost'] or 0)
+    
+    # Get vessels with expired or expiring documents
+    expiring_documents = VesselDocument.objects.filter(
+        expiry_date__range=[today, thirty_days_later]
+    ).order_by('expiry_date')
+    
+    # Get document compliance rate
+    total_documents = VesselDocument.objects.count()
+    expired_documents = VesselDocument.objects.filter(
+        expiry_date__lt=today
+    ).count()
+    
+    document_compliance_rate = 100
+    if total_documents > 0:
+        document_compliance_rate = ((total_documents - expired_documents) / total_documents) * 100
+    
+    # Get contract data by vessel
+    contracts_by_vessel = Contract.objects.values('vessel').annotate(
+        contract_count=Count('id')
+    ).order_by('-contract_count')[:10]
+    
+    # Convert data to JSON for charts
+    def json_default(obj):
+        if isinstance(obj, (int, float, str, bool, type(None))):
+            return obj
+        return str(obj)
+    
+    # Vessel status for pie chart
+    status_labels = ['Operational', 'Maintenance', 'Repair', 'Docked', 'Unavailable']
+    status_counts = [operational_vessels, maintenance_vessels, repair_vessels, docked_vessels, unavailable_vessels]
+    
+    # Vessel type data for charts
+    vessel_type_labels = [item['vessel_type'] for item in vessel_types]
+    vessel_type_counts = [item['count'] for item in vessel_types]
+    
+    # Maintenance status for charts
+    maintenance_status_labels = ['Scheduled', 'In Progress', 'Completed', 'Delayed']
+    maintenance_status_counts = [scheduled_maintenance, in_progress_maintenance, completed_maintenance, delayed_maintenance]
+    
+    # Vessel maintenance cost data
+    maintenance_vessel_names = [item['vessel__name'] for item in vessel_maintenance_costs]
+    maintenance_vessel_costs = [float(item['total_cost']) for item in vessel_maintenance_costs]
     
     context = {
-        'report': report,
-        'vessels': vessels,
-        'vessel_types': vessel_types
+        'total_vessels': total_vessels,
+        'operational_vessels': operational_vessels,
+        'maintenance_vessels': maintenance_vessels,
+        'repair_vessels': repair_vessels,
+        'docked_vessels': docked_vessels,
+        'unavailable_vessels': unavailable_vessels,
+        'fleet_availability': round(fleet_availability, 2),
+        'vessel_types': vessel_types,
+        'total_maintenance_count': total_maintenance_count,
+        'scheduled_maintenance': scheduled_maintenance,
+        'in_progress_maintenance': in_progress_maintenance,
+        'completed_maintenance': completed_maintenance,
+        'delayed_maintenance': delayed_maintenance,
+        'upcoming_maintenance': upcoming_maintenance,
+        'total_maintenance_cost': total_maintenance_cost,
+        'avg_maintenance_cost': round(avg_maintenance_cost, 2),
+        'vessel_maintenance_costs': vessel_maintenance_costs,
+        'expiring_documents': expiring_documents,
+        'document_compliance_rate': round(document_compliance_rate, 2),
+        'contracts_by_vessel': contracts_by_vessel,
+        
+        # JSON data for charts
+        'months_json': json.dumps(months, default=json_default),
+        'maintenance_counts_json': json.dumps(maintenance_counts, default=json_default),
+        'maintenance_costs_json': json.dumps(maintenance_costs, default=json_default),
+        'status_labels_json': json.dumps(status_labels, default=json_default),
+        'status_counts_json': json.dumps(status_counts, default=json_default),
+        'vessel_type_labels_json': json.dumps(vessel_type_labels, default=json_default),
+        'vessel_type_counts_json': json.dumps(vessel_type_counts, default=json_default),
+        'maintenance_status_labels_json': json.dumps(maintenance_status_labels, default=json_default),
+        'maintenance_status_counts_json': json.dumps(maintenance_status_counts, default=json_default),
+        'maintenance_vessel_names_json': json.dumps(maintenance_vessel_names, default=json_default),
+        'maintenance_vessel_costs_json': json.dumps(maintenance_vessel_costs, default=json_default),
     }
     
-    return render(request, 'ShipOps/reports/report_form.html', context)
+    return render(request, 'ShipOps/vessel_performance.html', context)
 
 @login_required
-def report_delete(request, report_id):
-    """View to delete a saved report"""
-    report = get_object_or_404(SavedReport, id=report_id)
+def maintenance_report_view(request):
+    """
+    View function for vessel maintenance reports
+    """
+    # Get maintenance data
+    vessels = Vessel.objects.all()
+    maintenance_records = VesselMaintenance.objects.all().order_by('-scheduled_date')
     
-    # Check if user has permission to delete this report
-    if report.created_by != request.user:
-        messages.error(request, "You don't have permission to delete this report.")
-        return redirect('reports_list')
-    
-    if request.method == 'POST':
-        # Log the action
-        AnalyticsLog.objects.create(
-            user=request.user,
-            action='delete_report',
-            details={'report_id': report.id, 'report_name': report.name}
-        )
-        
-        # Delete the report
-        report_name = report.name
-        report.delete()
-        
-        messages.success(request, f'Report "{report_name}" has been deleted successfully.')
-    
-    return redirect('reports_list')
-
-@login_required
-def report_refresh(request, report_id):
-    """View to refresh the data of a saved report"""
-    report = get_object_or_404(SavedReport, id=report_id)
-    
-    # Check if user has permission to refresh this report
-    if report.created_by != request.user:
-        messages.error(request, "You don't have permission to refresh this report.")
-        return redirect('reports_list')
-    
-    # Generate fresh data based on the stored parameters
-    report.data = generate_report_data(report.report_type, report.parameters)
-    report.save()
-    
-    # Log the action
-    AnalyticsLog.objects.create(
-        user=request.user,
-        action='refresh_report',
-        details={'report_id': report.id}
+    # Calculate maintenance statistics
+    overdue_tasks = maintenance_records.filter(
+        status='delayed',
+        scheduled_date__lt=timezone.now().date()
     )
     
-    messages.success(request, f'Report "{report.name}" has been refreshed successfully.')
-    return redirect('report_view', report_id=report.id)
-
-def generate_report_data(report_type, parameters):
-    """Helper function to generate report data based on type and parameters"""
-    data = {'items': [], 'summary': [], 'charts': {}}
+    scheduled_tasks = maintenance_records.filter(
+        status='scheduled'
+    )
     
-    # Extract parameters
-    start_date = parameters.get('start_date')
-    end_date = parameters.get('end_date')
-    filters = parameters.get('filters', {})
+    completed_tasks = maintenance_records.filter(
+        status='completed',
+        completion_date__gte=timezone.now().date() - timezone.timedelta(days=30)
+    )
     
-    if report_type == 'contract':
-        # Get contracts
-        queryset = Contract.objects.all()
-        
-        # Apply date filters if provided
-        if start_date and end_date:
-            queryset = queryset.filter(
-                created_at__date__gte=start_date,
-                created_at__date__lte=end_date
-            )
-        
-        # Apply status filter if provided
-        contract_status = filters.get('contract_status', [])
-        if contract_status:
-            queryset = queryset.filter(state__in=contract_status)
-        
-        # Apply vessel filter if provided
-        vessel_ids = filters.get('vessel', [])
-        if vessel_ids:
-            queryset = queryset.filter(vessel_id__in=vessel_ids)
-        
-        # Prepare data
-        contracts = list(queryset.values())
-        data['items'] = contracts
-        
-        # Prepare summary
-        total_contracts = len(contracts)
-        total_amount = sum(c.get('price_usd', 0) for c in contracts)
-        pending_contracts = sum(1 for c in contracts if c.get('state') == 'Pending')
-        completed_contracts = sum(1 for c in contracts if c.get('state') == 'Completed')
-        
-        data['summary'] = [
-            {'label': 'Total Contracts', 'value': total_contracts, 'icon': 'file-contract', 'color': 'primary'},
-            {'label': 'Total Amount (USD)', 'value': f"${total_amount:,.2f}", 'icon': 'dollar-sign', 'color': 'success'},
-            {'label': 'Pending Contracts', 'value': pending_contracts, 'icon': 'clock', 'color': 'warning'},
-            {'label': 'Completed Contracts', 'value': completed_contracts, 'icon': 'check-circle', 'color': 'info'}
-        ]
-        
-        # Prepare chart data
-        chart_data = {}
-        
-        # Status distribution
-        status_counts = {}
-        for contract in contracts:
-            state = contract.get('state', 'Unknown')
-            status_counts[state] = status_counts.get(state, 0) + 1
-        
-        chart_data['status'] = {
-            'type': 'pie',
-            'data': {
-                'labels': list(status_counts.keys()),
-                'datasets': [{
-                    'data': list(status_counts.values()),
-                    'backgroundColor': [
-                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'
-                    ]
-                }]
-            }
-        }
-        
-        # Monthly contracts
-        monthly_counts = {}
-        for contract in contracts:
-            if 'created_at' in contract and contract['created_at']:
-                month = contract['created_at'][:7]  # Get YYYY-MM format
-                monthly_counts[month] = monthly_counts.get(month, 0) + 1
-        
-        # Sort months
-        sorted_months = sorted(monthly_counts.keys())
-        
-        chart_data['monthly'] = {
-            'type': 'bar',
-            'data': {
-                'labels': sorted_months,
-                'datasets': [{
-                    'label': 'Contracts',
-                    'data': [monthly_counts[month] for month in sorted_months],
-                    'backgroundColor': '#4e73df'
-                }]
-            }
-        }
-        
-        data['charts'] = chart_data
+    pending_tasks = maintenance_records.filter(
+        status='in_progress'
+    )
     
-    elif report_type == 'invoice':
-        # Get invoices
-        queryset = Invoice.objects.all()
-        
-        # Apply date filters if provided
-        if start_date and end_date:
-            queryset = queryset.filter(
-                created_at__date__gte=start_date,
-                created_at__date__lte=end_date
-            )
-        
-        # Apply status filter if provided
-        payment_status = filters.get('payment_status', [])
-        if payment_status:
-            queryset = queryset.filter(status__in=payment_status)
-        
-        # Apply currency filter if provided
-        currency = filters.get('currency')
-        if currency:
-            if currency == 'USD':
-                queryset = queryset.filter(price_usd__gt=0)
-            elif currency == 'AED':
-                queryset = queryset.filter(aed_price__gt=0)
-        
-        # Prepare data
-        invoices = list(queryset.values())
-        data['items'] = invoices
-        
-        # Prepare summary
-        total_invoices = len(invoices)
-        total_amount_usd = sum(i.get('price_usd', 0) for i in invoices)
-        total_amount_aed = sum(i.get('aed_price', 0) for i in invoices)
-        paid_invoices = sum(1 for i in invoices if i.get('status') == 'Paid')
-        
-        data['summary'] = [
-            {'label': 'Total Invoices', 'value': total_invoices, 'icon': 'file-invoice', 'color': 'primary'},
-            {'label': 'Total USD', 'value': f"${total_amount_usd:,.2f}", 'icon': 'dollar-sign', 'color': 'success'},
-            {'label': 'Total AED', 'value': f"AED {total_amount_aed:,.2f}", 'icon': 'money-bill-wave', 'color': 'info'},
-            {'label': 'Paid Invoices', 'value': paid_invoices, 'icon': 'check-circle', 'color': 'success'}
-        ]
-        
-        # Prepare chart data
-        chart_data = {}
-        
-        # Status distribution
-        status_counts = {}
-        for invoice in invoices:
-            status = invoice.get('status', 'Unknown')
-            status_counts[status] = status_counts.get(status, 0) + 1
-        
-        chart_data['status'] = {
-            'type': 'pie',
-            'data': {
-                'labels': list(status_counts.keys()),
-                'datasets': [{
-                    'data': list(status_counts.values()),
-                    'backgroundColor': [
-                        '#1cc88a', '#f6c23e', '#e74a3b', '#4e73df'
-                    ]
-                }]
-            }
-        }
-        
-        # Monthly invoices
-        monthly_amounts = {'USD': {}, 'AED': {}}
-        for invoice in invoices:
-            if 'created_at' in invoice and invoice['created_at']:
-                month = invoice['created_at'][:7]  # Get YYYY-MM format
-                
-                usd_amount = invoice.get('price_usd', 0)
-                if usd_amount > 0:
-                    if month not in monthly_amounts['USD']:
-                        monthly_amounts['USD'][month] = 0
-                    monthly_amounts['USD'][month] += usd_amount
-                
-                aed_amount = invoice.get('aed_price', 0)
-                if aed_amount > 0:
-                    if month not in monthly_amounts['AED']:
-                        monthly_amounts['AED'][month] = 0
-                    monthly_amounts['AED'][month] += aed_amount
-        
-        # Sort months
-        all_months = set()
-        for currency_data in monthly_amounts.values():
-            all_months.update(currency_data.keys())
-        sorted_months = sorted(all_months)
-        
-        datasets = []
-        for currency, month_data in monthly_amounts.items():
-            datasets.append({
-                'label': currency,
-                'data': [month_data.get(month, 0) for month in sorted_months],
-                'backgroundColor': '#4e73df' if currency == 'USD' else '#1cc88a'
-            })
-        
-        chart_data['monthly'] = {
-            'type': 'bar',
-            'data': {
-                'labels': sorted_months,
-                'datasets': datasets
-            }
-        }
-        
-        data['charts'] = chart_data
+    # Get upcoming maintenance tasks
+    upcoming_maintenance = maintenance_records.filter(
+        status__in=['scheduled', 'in_progress'],
+        scheduled_date__gte=timezone.now().date()
+    ).order_by('scheduled_date')[:10]
     
-    elif report_type == 'vessel':
-        # Get vessels
-        queryset = Vessel.objects.all()
-        
-        # Apply status filter if provided
-        vessel_status = filters.get('vessel_status', [])
-        if vessel_status:
-            queryset = queryset.filter(status__in=vessel_status)
-        
-        # Apply vessel type filter if provided
-        vessel_type_ids = filters.get('vessel_type', [])
-        if vessel_type_ids:
-            queryset = queryset.filter(vessel_type_id__in=vessel_type_ids)
-        
-        # Prepare data
-        vessels = list(queryset.values())
-        data['items'] = vessels
-        
-        # Prepare summary
-        total_vessels = len(vessels)
-        active_vessels = sum(1 for v in vessels if v.get('status') == 'Active')
-        maintenance_vessels = sum(1 for v in vessels if v.get('status') == 'In Maintenance')
-        inactive_vessels = sum(1 for v in vessels if v.get('status') == 'Inactive')
-        
-        data['summary'] = [
-            {'label': 'Total Vessels', 'value': total_vessels, 'icon': 'ship', 'color': 'primary'},
-            {'label': 'Active Vessels', 'value': active_vessels, 'icon': 'check-circle', 'color': 'success'},
-            {'label': 'In Maintenance', 'value': maintenance_vessels, 'icon': 'tools', 'color': 'warning'},
-            {'label': 'Inactive Vessels', 'value': inactive_vessels, 'icon': 'pause-circle', 'color': 'danger'}
-        ]
-        
-        # Prepare chart data
-        chart_data = {}
-        
-        # Status distribution
-        status_counts = {}
-        for vessel in vessels:
-            status = vessel.get('status', 'Unknown')
-            status_counts[status] = status_counts.get(status, 0) + 1
-        
-        chart_data['status'] = {
-            'type': 'pie',
-            'data': {
-                'labels': list(status_counts.keys()),
-                'datasets': [{
-                    'data': list(status_counts.values()),
-                    'backgroundColor': [
-                        '#1cc88a', '#f6c23e', '#e74a3b'
-                    ]
-                }]
-            }
-        }
-        
-        # Vessel types
-        type_counts = {}
-        for vessel in vessels:
-            vessel_type = vessel.get('vessel_type', 'Unknown')
-            type_counts[vessel_type] = type_counts.get(vessel_type, 0) + 1
-        
-        chart_data['types'] = {
-            'type': 'bar',
-            'data': {
-                'labels': list(type_counts.keys()),
-                'datasets': [{
-                    'label': 'Vessels by Type',
-                    'data': list(type_counts.values()),
-                    'backgroundColor': '#4e73df'
-                }]
-            }
-        }
-        
-        data['charts'] = chart_data
+    # Prepare context for the template
+    context = {
+        'overdue_tasks_count': overdue_tasks.count(),
+        'scheduled_tasks_count': scheduled_tasks.count(),
+        'completed_tasks_count': completed_tasks.count(),
+        'pending_tasks_count': pending_tasks.count(),
+        'due_this_week_count': scheduled_tasks.filter(
+            scheduled_date__lte=timezone.now().date() + timezone.timedelta(days=7)
+        ).count(),
+        'total_scheduled_count': maintenance_records.filter(status='scheduled').count(),
+        'maintenance_tasks': upcoming_maintenance,
+    }
     
-    return data
+    return render(request, 'ShipOps/reports/report_types/maintenance_report.html', context)

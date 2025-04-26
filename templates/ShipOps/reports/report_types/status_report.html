@@ -1,0 +1,209 @@
+<!-- Status Overview Report -->
+<div class="row mb-4">
+  <!-- System Stats -->
+  <div class="col-md-4 mb-4">
+    <div class="card shadow h-100">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">System Overview</h6>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-12 mb-4">
+            <div class="card border-left-primary shadow py-2 summary-card">
+              <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                  <div class="col mr-2">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                      Total Contracts
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ data.contract_count }}</div>
+                  </div>
+                  <div class="col-auto">
+                    <i class="fas fa-file-contract fa-2x text-gray-300"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12 mb-4">
+            <div class="card border-left-success shadow py-2 summary-card">
+              <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                  <div class="col mr-2">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                      Total Invoices
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ data.invoice_count }}</div>
+                  </div>
+                  <div class="col-auto">
+                    <i class="fas fa-file-invoice fa-2x text-gray-300"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-12">
+            <div class="card border-left-info shadow py-2 summary-card">
+              <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                  <div class="col mr-2">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                      Total Vessels
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ data.vessel_count }}</div>
+                  </div>
+                  <div class="col-auto">
+                    <i class="fas fa-ship fa-2x text-gray-300"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Contract Status -->
+  <div class="col-md-4 mb-4">
+    <div class="card shadow h-100">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Contract Status</h6>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="contractStatusChart"></canvas>
+        </div>
+        <div class="mt-4">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Count</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge bg-warning text-dark">Pending</span></td>
+                  <td>{{ data.contract_status.pending }}</td>
+                  <td>{{ data.contract_status.pending|default:0|multiply:100|divide:data.contract_count|default:1|floatformat:1 }}%</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-info">Finance</span></td>
+                  <td>{{ data.contract_status.finance }}</td>
+                  <td>{{ data.contract_status.finance|default:0|multiply:100|divide:data.contract_count|default:1|floatformat:1 }}%</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-primary">Billed</span></td>
+                  <td>{{ data.contract_status.billed }}</td>
+                  <td>{{ data.contract_status.billed|default:0|multiply:100|divide:data.contract_count|default:1|floatformat:1 }}%</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-success">Completed</span></td>
+                  <td>{{ data.contract_status.completed }}</td>
+                  <td>{{ data.contract_status.completed|default:0|multiply:100|divide:data.contract_count|default:1|floatformat:1 }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Invoice Status -->
+  <div class="col-md-4 mb-4">
+    <div class="card shadow h-100">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Invoice Status</h6>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="invoiceStatusChart"></canvas>
+        </div>
+        <div class="mt-4">
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Count</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge bg-warning text-dark">Pending</span></td>
+                  <td>{{ data.invoice_status.pending }}</td>
+                  <td>{{ data.invoice_status.pending|default:0|multiply:100|divide:data.invoice_count|default:1|floatformat:1 }}%</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-success">Paid</span></td>
+                  <td>{{ data.invoice_status.paid }}</td>
+                  <td>{{ data.invoice_status.paid|default:0|multiply:100|divide:data.invoice_count|default:1|floatformat:1 }}%</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-danger">Overdue</span></td>
+                  <td>{{ data.invoice_status.overdue }}</td>
+                  <td>{{ data.invoice_status.overdue|default:0|multiply:100|divide:data.invoice_count|default:1|floatformat:1 }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Vessel Status -->
+<div class="row">
+  <div class="col-lg-12">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Vessel Status</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for status, count in data.vessel_status.items %}
+            <div class="col-xl-3 col-md-6 mb-4">
+              <div class="card shadow h-100 py-2 summary-card 
+                {% if status == 'active' %}border-left-success{% elif status == 'maintenance' %}border-left-warning
+                {% elif status == 'docked' %}border-left-info{% elif status == 'in_transit' %}border-left-primary
+                {% else %}border-left-secondary{% endif %}">
+                <div class="card-body">
+                  <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                      <div class="text-xs font-weight-bold text-uppercase mb-1
+                        {% if status == 'active' %}text-success{% elif status == 'maintenance' %}text-warning
+                        {% elif status == 'docked' %}text-info{% elif status == 'in_transit' %}text-primary
+                        {% else %}text-secondary{% endif %}">
+                        {{ status|title }}
+                      </div>
+                      <div class="h5 mb-0 font-weight-bold text-gray-800">{{ count }}</div>
+                    </div>
+                    <div class="col-auto">
+                      {% if status == 'active' %}
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                      {% elif status == 'maintenance' %}
+                        <i class="fas fa-tools fa-2x text-gray-300"></i>
+                      {% elif status == 'docked' %}
+                        <i class="fas fa-anchor fa-2x text-gray-300"></i>
+                      {% elif status == 'in_transit' %}
+                        <i class="fas fa-route fa-2x text-gray-300"></i>
+                      {% else %}
+                        <i class="fas fa-question-circle fa-2x text-gray-300"></i>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

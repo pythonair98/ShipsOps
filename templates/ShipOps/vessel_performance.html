@@ -1,0 +1,548 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Vessel Performance Reports{% endblock title %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<style>
+    .metric-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .metric-card {
+        flex: 1;
+        min-width: 200px;
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .card-value {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .chart-container {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .chart-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .chart-col {
+        flex: 1;
+        min-width: 45%;
+    }
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    .data-table th {
+        background-color: #f2f2f2;
+    }
+    .data-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .chart-row {
+            flex-direction: column;
+        }
+        .chart-col {
+            width: 100%;
+        }
+    }
+    
+    /* Status indicators */
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    .status-good {
+        background-color: #28a745;
+    }
+    .status-warning {
+        background-color: #ffc107;
+    }
+    .status-alert {
+        background-color: #dc3545;
+    }
+    
+    /* Vessel cards */
+    .vessel-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .vessel-card {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .vessel-card-header {
+        background-color: #343a40;
+        color: white;
+        padding: 15px;
+        font-weight: bold;
+    }
+    .vessel-card-body {
+        padding: 15px;
+        background-color: white;
+    }
+    .vessel-stat {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .vessel-stat:last-child {
+        border-bottom: none;
+    }
+</style>
+{% endblock head %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Vessel Performance Reports</h1>
+        <div>
+            <button class="btn btn-sm btn-outline-secondary me-2" id="dateRangeBtn">
+                <i class="fas fa-calendar me-2"></i>Last 12 Months
+            </button>
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Print Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="metric-cards">
+        <div class="metric-card">
+            <h3>Active Vessels</h3>
+            <div class="card-value">{{ active_vessels_count }}</div>
+            <div class="small text-muted">Currently under contract</div>
+        </div>
+        <div class="metric-card">
+            <h3>Total Contracts</h3>
+            <div class="card-value">{{ total_contracts }}</div>
+            <div class="small text-muted">All time</div>
+        </div>
+        <div class="metric-card">
+            <h3>Active Contracts</h3>
+            <div class="card-value">{{ active_contracts }}</div>
+            <div class="small text-muted">Currently active</div>
+        </div>
+        <div class="metric-card">
+            <h3>Upcoming Maintenance</h3>
+            <div class="card-value">{{ upcoming_maintenance_count }}</div>
+            <div class="small text-muted">Next 30 days</div>
+        </div>
+    </div>
+
+    <!-- Fleet Status Overview -->
+    <div class="chart-container">
+        <h2 class="mb-4">Fleet Status Overview</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <canvas id="vesselStatusChart" height="300"></canvas>
+            </div>
+            <div class="col-md-6">
+                <h4 class="mb-3">Vessel Status Breakdown</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Count</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="status-indicator status-good"></span> Operational</td>
+                            <td>{{ operational_vessels_count }}</td>
+                            <td>{{ operational_percentage|floatformat:1 }}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-indicator status-warning"></span> In Maintenance</td>
+                            <td>{{ maintenance_vessels_count }}</td>
+                            <td>{{ maintenance_percentage|floatformat:1 }}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="status-indicator status-alert"></span> Out of Service</td>
+                            <td>{{ out_of_service_vessels_count }}</td>
+                            <td>{{ out_of_service_percentage|floatformat:1 }}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="chart-row">
+        <!-- Contract by Vessel Type -->
+        <div class="chart-col">
+            <div class="chart-container">
+                <h2>Contracts by Vessel Type</h2>
+                <canvas id="contractsByVesselTypeChart" height="300"></canvas>
+            </div>
+        </div>
+        <!-- Maintenance Trend -->
+        <div class="chart-col">
+            <div class="chart-container">
+                <h2>Maintenance Trend</h2>
+                <canvas id="maintenanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- More Charts Section -->
+    <div class="chart-row">
+        <!-- Revenue per Vessel -->
+        <div class="chart-col">
+            <div class="chart-container">
+                <h2>Revenue per Vessel</h2>
+                <canvas id="revenuePerVesselChart" height="300"></canvas>
+            </div>
+        </div>
+        <!-- Contract Performance -->
+        <div class="chart-col">
+            <div class="chart-container">
+                <h2>Contract Performance</h2>
+                <p class="text-muted">Completed vs cancelled contracts over time</p>
+                <canvas id="contractPerformanceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vessel Cards -->
+    <h2 class="mb-4">Vessel Performance Summary</h2>
+    <div class="vessel-cards">
+        {% for vessel in top_vessels %}
+        <div class="vessel-card">
+            <div class="vessel-card-header">
+                {{ vessel.name }}
+            </div>
+            <div class="vessel-card-body">
+                <div class="vessel-stat">
+                    <span>Contract Count:</span>
+                    <strong>{{ vessel.contract_count }}</strong>
+                </div>
+                <div class="vessel-stat">
+                    <span>Total Revenue:</span>
+                    <strong>${{ vessel.total_revenue|floatformat:2 }}</strong>
+                </div>
+                <div class="vessel-stat">
+                    <span>Avg Contract Value:</span>
+                    <strong>${{ vessel.avg_contract_value|floatformat:2 }}</strong>
+                </div>
+                <div class="vessel-stat">
+                    <span>Maintenance Events:</span>
+                    <strong>{{ vessel.maintenance_count }}</strong>
+                </div>
+                <div class="vessel-stat">
+                    <span>Status:</span>
+                    <strong>
+                        {% if vessel.status == 'operational' %}
+                            <span class="status-indicator status-good"></span>Operational
+                        {% elif vessel.status == 'maintenance' %}
+                            <span class="status-indicator status-warning"></span>In Maintenance
+                        {% else %}
+                            <span class="status-indicator status-alert"></span>Out of Service
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Upcoming Maintenance -->
+    <div class="chart-container">
+        <h2>Upcoming Maintenance</h2>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Vessel</th>
+                        <th>Maintenance Type</th>
+                        <th>Scheduled Date</th>
+                        <th>Estimated Duration</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for maintenance in upcoming_maintenance %}
+                    <tr>
+                        <td>{{ maintenance.vessel.name }}</td>
+                        <td>{{ maintenance.maintenance_type }}</td>
+                        <td>{{ maintenance.scheduled_date|date:"M d, Y" }}</td>
+                        <td>{{ maintenance.estimated_duration }} days</td>
+                        <td>
+                            {% if maintenance.status == 'scheduled' %}
+                                <span class="badge bg-info">Scheduled</span>
+                            {% elif maintenance.status == 'in_progress' %}
+                                <span class="badge bg-warning text-dark">In Progress</span>
+                            {% elif maintenance.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elif maintenance.status == 'overdue' %}
+                                <span class="badge bg-danger">Overdue</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No upcoming maintenance scheduled.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    // Chart colors
+    const chartColors = {
+        blue: '#36A2EB',
+        green: '#28a745',
+        yellow: '#ffc107',
+        red: '#dc3545',
+        purple: '#9966FF',
+        orange: '#FF9F40',
+        gray: '#6c757d',
+        teal: '#20c997',
+        indigo: '#6610f2',
+        cyan: '#0dcaf0'
+    };
+
+    // Safely parse JSON data with fallback to empty arrays
+    function safeJSONParse(jsonStr) {
+        try {
+            const parsed = JSON.parse(jsonStr);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.error('Error parsing JSON:', e, jsonStr);
+            return [];
+        }
+    }
+
+    try {
+        // Vessel Status Chart
+        const ctx1 = document.getElementById('vesselStatusChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: ['Operational', 'In Maintenance', 'Out of Service'],
+                datasets: [{
+                    data: [
+                        {{ operational_vessels_count }}, 
+                        {{ maintenance_vessels_count }}, 
+                        {{ out_of_service_vessels_count }}
+                    ],
+                    backgroundColor: [chartColors.green, chartColors.yellow, chartColors.red],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Vessel Status Distribution'
+                    }
+                }
+            }
+        });
+
+        // Contracts by Vessel Type Chart
+        const vesselTypes = safeJSONParse('{{ vessel_types_json|escapejs }}');
+        const contractsCountByType = safeJSONParse('{{ contracts_by_type_json|escapejs }}');
+        
+        const ctx2 = document.getElementById('contractsByVesselTypeChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: vesselTypes,
+                datasets: [{
+                    label: 'Number of Contracts',
+                    data: contractsCountByType,
+                    backgroundColor: Object.values(chartColors).slice(0, vesselTypes.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Contracts'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Vessel Type'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Maintenance Chart
+        const months = safeJSONParse('{{ months_json|escapejs }}');
+        const maintenanceData = safeJSONParse('{{ maintenance_data_json|escapejs }}');
+        
+        const ctx3 = document.getElementById('maintenanceChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Maintenance Events',
+                    data: maintenanceData,
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                    borderColor: chartColors.orange,
+                    borderWidth: 2,
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Events'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Revenue per Vessel Chart
+        const vesselNames = safeJSONParse('{{ vessel_names_json|escapejs }}');
+        const revenueByVessel = safeJSONParse('{{ revenue_by_vessel_json|escapejs }}');
+        
+        const ctx4 = document.getElementById('revenuePerVesselChart').getContext('2d');
+        new Chart(ctx4, {
+            type: 'bar',
+            data: {
+                labels: vesselNames,
+                datasets: [{
+                    label: 'Revenue (USD)',
+                    data: revenueByVessel,
+                    backgroundColor: chartColors.blue,
+                    borderColor: chartColors.blue,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Revenue (USD)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Vessel'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Contract Performance Chart
+        const completedContracts = safeJSONParse('{{ completed_contracts_json|escapejs }}');
+        const cancelledContracts = safeJSONParse('{{ cancelled_contracts_json|escapejs }}');
+        
+        const ctx5 = document.getElementById('contractPerformanceChart').getContext('2d');
+        new Chart(ctx5, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    {
+                        label: 'Completed Contracts',
+                        data: completedContracts,
+                        backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                        borderColor: chartColors.green,
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    },
+                    {
+                        label: 'Cancelled Contracts',
+                        data: cancelledContracts,
+                        backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                        borderColor: chartColors.red,
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Contracts'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error("Error creating charts:", error);
+        alert("An error occurred while creating the charts: " + error.message);
+    }
+</script>
+{% endblock extra_js %} 

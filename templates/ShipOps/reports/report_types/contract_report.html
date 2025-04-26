@@ -1,0 +1,407 @@
+{% load custom_filters %}
+
+<div class="row mb-4">
+    <!-- Summary Cards -->
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">All Contracts</h5>
+                <p class="summary-number">{{ contract_data.total_contracts }}</p>
+                <p class="summary-label">Total contracts</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Active</h5>
+                <p class="summary-number">{{ contract_data.active_contracts }}</p>
+                <p class="summary-label">In progress</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Ending Soon</h5>
+                <p class="summary-number">{{ contract_data.ending_soon }}</p>
+                <p class="summary-label">Next 30 days</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 summary-card">
+            <div class="card-body">
+                <h5 class="card-title">Total Value</h5>
+                <p class="summary-number">{{ contract_data.total_value|floatformat:0 }}</p>
+                <p class="summary-label">{{ contract_data.currency }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if report_execution.report.show_chart and contract_data.chart_data %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Contract Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="contractStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Contract Value by Month</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="contractValueChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Status distribution chart
+        const statusCtx = document.getElementById('contractStatusChart').getContext('2d');
+        const statusLabels = {{ contract_data.status_labels|safe }};
+        const statusData = {{ contract_data.status_data|safe }};
+        
+        const statusColors = [
+            '#1cc88a',  // Active
+            '#f6c23e',  // Pending
+            '#4e73df',  // Completed
+            '#e74a3b',  // Terminated
+            '#5a5c69'   // Other
+        ];
+        
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: statusColors.slice(0, statusData.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                let total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                let percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Contract value chart
+        const valueCtx = document.getElementById('contractValueChart').getContext('2d');
+        const monthLabels = {{ contract_data.month_labels|safe }};
+        const valueData = {{ contract_data.value_data|safe }};
+        
+        new Chart(valueCtx, {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Contract Value',
+                    data: valueData,
+                    backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Value (' + "{{ contract_data.currency }}" + ')'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Contract List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="contractTable">
+                        <thead>
+                            <tr>
+                                <th>Contract #</th>
+                                <th>Client</th>
+                                <th>Vessel</th>
+                                <th>Type</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Duration</th>
+                                <th>Value</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contract in contract_data.contracts %}
+                            <tr>
+                                <td>{{ contract.contract_number }}</td>
+                                <td>{{ contract.client_name }}</td>
+                                <td>{{ contract.vessel_name }}</td>
+                                <td>{{ contract.contract_type }}</td>
+                                <td>{{ contract.start_date }}</td>
+                                <td>{{ contract.end_date }}</td>
+                                <td>
+                                    {% if contract.days_remaining > 0 %}
+                                    {{ contract.duration }} days ({{ contract.days_remaining }} remaining)
+                                    {% elif contract.status == 'Active' %}
+                                    {{ contract.duration }} days (Expired)
+                                    {% else %}
+                                    {{ contract.duration }} days
+                                    {% endif %}
+                                </td>
+                                <td>{{ contract.value|floatformat:2 }} {{ contract_data.currency }}</td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if contract.status == 'Active' %}bg-success
+                                        {% elif contract.status == 'Pending' %}bg-warning
+                                        {% elif contract.status == 'Completed' %}bg-info
+                                        {% elif contract.status == 'Terminated' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ contract.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'contract_detail' contract.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if contract_data.ending_soon_contracts %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Contracts Ending Soon</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="endingSoonTable">
+                        <thead>
+                            <tr>
+                                <th>Contract #</th>
+                                <th>Client</th>
+                                <th>Vessel</th>
+                                <th>End Date</th>
+                                <th>Days Remaining</th>
+                                <th>Value</th>
+                                <th>Renewal Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contract in contract_data.ending_soon_contracts %}
+                            <tr>
+                                <td>{{ contract.contract_number }}</td>
+                                <td>{{ contract.client_name }}</td>
+                                <td>{{ contract.vessel_name }}</td>
+                                <td>{{ contract.end_date }}</td>
+                                <td>
+                                    <span class="
+                                        {% if contract.days_remaining < 7 %}text-danger
+                                        {% elif contract.days_remaining < 15 %}text-warning
+                                        {% else %}text-info{% endif %}">
+                                        {{ contract.days_remaining }} days
+                                    </span>
+                                </td>
+                                <td>{{ contract.value|floatformat:2 }} {{ contract_data.currency }}</td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if contract.renewal_status == 'Confirmed' %}bg-success
+                                        {% elif contract.renewal_status == 'In Negotiation' %}bg-warning
+                                        {% elif contract.renewal_status == 'Not Renewing' %}bg-danger
+                                        {% elif contract.renewal_status == 'Pending Decision' %}bg-secondary
+                                        {% else %}bg-info{% endif %}">
+                                        {{ contract.renewal_status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'contract_detail' contract.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    {% if contract.renewal_status != 'Confirmed' and contract.renewal_status != 'Not Renewing' %}
+                                    <button class="btn btn-sm btn-warning renewal-btn" data-contract-id="{{ contract.id }}">
+                                        <i class="fas fa-sync-alt"></i> Renewal
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if contract_data.revenue_by_client %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Revenue by Client</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="revenueByClientTable">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Active Contracts</th>
+                                <th>Total Contracts</th>
+                                <th>Current Value</th>
+                                <th>Total Value</th>
+                                <th>Average Duration</th>
+                                <th>Renewal Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for client in contract_data.revenue_by_client %}
+                            <tr>
+                                <td>{{ client.name }}</td>
+                                <td>{{ client.active_contracts }}</td>
+                                <td>{{ client.total_contracts }}</td>
+                                <td>{{ client.current_value|floatformat:2 }} {{ contract_data.currency }}</td>
+                                <td>{{ client.total_value|floatformat:2 }} {{ contract_data.currency }}</td>
+                                <td>{{ client.avg_duration }} days</td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar 
+                                            {% if client.renewal_rate >= 80 %}bg-success
+                                            {% elif client.renewal_rate >= 50 %}bg-info
+                                            {% elif client.renewal_rate >= 30 %}bg-warning
+                                            {% else %}bg-danger{% endif %}" 
+                                            role="progressbar" 
+                                            style="width: {{ client.renewal_rate }}%"
+                                            aria-valuenow="{{ client.renewal_rate }}" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="100">
+                                            {{ client.renewal_rate }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    $(document).ready(function() {
+        $('#contractTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        
+        {% if contract_data.ending_soon_contracts %}
+        $('#endingSoonTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        
+        // Set up contract renewal functionality
+        $('.renewal-btn').on('click', function() {
+            const contractId = $(this).data('contract-id');
+            window.location.href = "{% url 'contract_renewal' %}?contract_id=" + contractId;
+        });
+        {% endif %}
+        
+        {% if contract_data.revenue_by_client %}
+        $('#revenueByClientTable').DataTable({
+            paginate: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                'copy', 'csv', 'excel', 'pdf', 'print'
+            ]
+        });
+        {% endif %}
+    });
+</script> 
