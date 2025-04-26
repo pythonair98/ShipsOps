@@ -5,8 +5,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>{% block title %}{% endblock title %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+  <meta name="description" content="ShipsOps - Comprehensive maritime operations management system for vessel tracking, contract management, invoice processing, and analytics" />
+  <meta name="keywords" content="maritime, shipping, vessel management, contracts, invoices, maintenance, maritime analytics, ship operations" />
+  <meta name="author" content="ShipsOps Team" />
+  <meta name="application-name" content="ShipsOps" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#4361ee" />
+  <meta property="og:title" content="{% block og_title %}ShipsOps - Maritime Operations Management{% endblock %}" />
+  <meta property="og:description" content="{% block og_description %}Comprehensive maritime operations management system for vessel tracking, contract management, and analytics{% endblock %}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="{{ request.build_absolute_uri }}" />
+  <meta property="og:image" content="{% static 'imgs/1.png' %}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <title>{% block title %}{% endblock title %} | ShipsOps</title>
   <!-- Bootstrap 5 CSS -->
   <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
   <!-- Font Awesome Icons -->
