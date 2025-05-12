@@ -10,3 +10,6 @@ pytest==8.0.0  # For testing
 pytest-django==4.7.0  # For Django specific testing
 coverage==7.4.1  # For test coverage 
 whitenoise
+pymysql
+faker
+whitenoise
