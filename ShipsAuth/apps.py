@@ -6,4 +6,4 @@ class ShipsauthConfig(AppConfig):
     name = 'ShipsAuth'
     
     def ready(self):
-        import ShipsAuth.signals
+        import ShipsAuth.signals  # Import signals when app is ready

@@ -26,21 +26,14 @@
       <h6 class="m-0 fw-bold text-primary">{% if invoice %}Invoice #{{ invoice.id }}{% else %}New Invoice{% endif %}</h6>
     </div>
     <div class="card-body">
-      <form method="post" action="">
+      <form method="post" action="" id="invoiceForm">
         {% csrf_token %}
         
         <div class="row g-3">
           <!-- Contract Selection -->
           <div class="col-md-6 mb-3">
-            <label for="contract" class="form-label">Contract</label>
-            <select name="contract" id="contract" class="form-select" required>
-              <option value="">Select a contract</option>
-              {% for contract in form.fields.contract.queryset %}
-                <option value="{{ contract.id }}" {% if form.contract.value == contract.id %}selected{% endif %}>
-                  {{ contract.vessel }} - {{ contract.charterer }} ({{ contract.service_type }})
-                </option>
-              {% endfor %}
-            </select>
+            <label for="id_contract" class="form-label">Contract</label>
+            {{ form.contract }}
             {% if form.contract.errors %}
               <div class="invalid-feedback d-block">
                 {{ form.contract.errors }}
@@ -48,14 +41,10 @@
             {% endif %}
           </div>
 
-          <!-- Price -->
-          <div class="col-md-4 mb-3">
-            <label for="price_usd" class="form-label">Price (USD)</label>
-            <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input type="number" class="form-control" id="price_usd" name="price_usd" 
-                     value="{{ form.price_usd.value|default:'' }}" step="0.01" min="0" required>
-            </div>
+          <!-- Price in USD -->
+          <div class="col-md-6 mb-3">
+            <label for="id_price_usd" class="form-label">Price (USD)</label>
+            {{ form.price_usd }}
             {% if form.price_usd.errors %}
               <div class="invalid-feedback d-block">
                 {{ form.price_usd.errors }}
@@ -63,31 +52,28 @@
             {% endif %}
           </div>
 
-          <!-- AED Price -->
-          <div class="col-md-4 mb-3">
-            <label for="aed_price" class="form-label">Price (AED)</label>
-            <div class="input-group">
-              <span class="input-group-text">AED</span>
-              <input type="number" class="form-control" id="aed_price" name="aed_price" 
-                     value="{{ form.aed_price.value|default:'' }}" step="0.01" min="0">
-            </div>
-            {% if form.aed_price.errors %}
-              <div class="invalid-feedback d-block">
-                {{ form.aed_price.errors }}
-              </div>
-            {% endif %}
+          <!-- Price in Words (USD) -->
+          <div class="col-md-6 mb-3">
+            <label for="id_price_usd_in_word" class="form-label">Price in Words (USD)</label>
+            {{ form.price_usd_in_word }}
+          </div>
+
+          <!-- Price in AED -->
+          <div class="col-md-6 mb-3">
+            <label for="id_aed_price" class="form-label">Price (AED)</label>
+            {{ form.aed_price }}
+          </div>
+
+          <!-- Price in Words (AED) -->
+          <div class="col-md-6 mb-3">
+            <label for="id_aed_price_in_word" class="form-label">Price in Words (AED)</label>
+            {{ form.aed_price_in_word }}
           </div>
 
           <!-- Status -->
-          <div class="col-md-4 mb-3">
-            <label for="status" class="form-label">Status</label>
-            <select name="status" id="status" class="form-select" required>
-              {% for status_value, status_name in form.fields.status.choices %}
-                <option value="{{ status_value }}" {% if form.status.value == status_value %}selected{% endif %}>
-                  {{ status_name }}
-                </option>
-              {% endfor %}
-            </select>
+          <div class="col-md-6 mb-3">
+            <label for="id_status" class="form-label">Status</label>
+            {{ form.status }}
             {% if form.status.errors %}
               <div class="invalid-feedback d-block">
                 {{ form.status.errors }}
@@ -96,10 +82,9 @@
           </div>
 
           <!-- Due Date -->
-          <div class="col-md-4 mb-3">
-            <label for="due_date" class="form-label">Due Date</label>
-            <input type="date" class="form-control" id="due_date" name="due_date" 
-                   value="{{ form.due_date.value|date:'Y-m-d'|default:'' }}" required>
+          <div class="col-md-6 mb-3">
+            <label for="id_due_date" class="form-label">Due Date</label>
+            {{ form.due_date }}
             {% if form.due_date.errors %}
               <div class="invalid-feedback d-block">
                 {{ form.due_date.errors }}
@@ -109,13 +94,8 @@
 
           <!-- Notes -->
           <div class="col-12 mb-3">
-            <label for="notes" class="form-label">Notes</label>
-            <textarea class="form-control" id="notes" name="notes" rows="4">{{ form.notes.value|default:'' }}</textarea>
-            {% if form.notes.errors %}
-              <div class="invalid-feedback d-block">
-                {{ form.notes.errors }}
-              </div>
-            {% endif %}
+            <label for="id_notes" class="form-label">Notes</label>
+            {{ form.notes }}
           </div>
         </div>
 
@@ -129,4 +109,108 @@
     </div>
   </div>
 </div>
+
+<!-- Add JavaScript for automatic calculations -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const priceUsdInput = document.getElementById('id_price_usd');
+    const aedPriceInput = document.getElementById('id_aed_price');
+    const priceUsdInWordInput = document.getElementById('id_price_usd_in_word');
+    const aedPriceInWordInput = document.getElementById('id_aed_price_in_word');
+    const dueDateInput = document.getElementById('id_due_date');
+    
+    // Set default due date to 30 days from now if not set
+    if (!dueDateInput.value) {
+        const today = new Date();
+        const dueDate = new Date(today);
+        dueDate.setDate(today.getDate() + 30);
+        dueDateInput.value = dueDate.toISOString().split('T')[0];
+    }
+    
+    // Function to convert number to words
+    function numberToWords(num) {
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        
+        if (num === 0) return 'Zero';
+        
+        function convertLessThanThousand(n) {
+            if (n === 0) return '';
+            
+            let words = '';
+            
+            if (n >= 100) {
+                words += ones[Math.floor(n / 100)] + ' Hundred ';
+                n %= 100;
+            }
+            
+            if (n >= 10) {
+                if (n < 20) {
+                    words += teens[n - 10] + ' ';
+                    return words;
+                } else {
+                    words += tens[Math.floor(n / 10)] + ' ';
+                    n %= 10;
+                }
+            }
+            
+            if (n > 0) {
+                words += ones[n] + ' ';
+            }
+            
+            return words;
+        }
+        
+        let words = '';
+        const numStr = num.toString();
+        const decimalPart = numStr.includes('.') ? numStr.split('.')[1] : '';
+        
+        // Handle whole number part
+        const wholeNum = Math.floor(num);
+        if (wholeNum >= 1000000000) {
+            words += convertLessThanThousand(Math.floor(wholeNum / 1000000000)) + 'Billion ';
+            wholeNum %= 1000000000;
+        }
+        if (wholeNum >= 1000000) {
+            words += convertLessThanThousand(Math.floor(wholeNum / 1000000)) + 'Million ';
+            wholeNum %= 1000000;
+        }
+        if (wholeNum >= 1000) {
+            words += convertLessThanThousand(Math.floor(wholeNum / 1000)) + 'Thousand ';
+            wholeNum %= 1000;
+        }
+        if (wholeNum > 0) {
+            words += convertLessThanThousand(wholeNum);
+        }
+        
+        // Handle decimal part
+        if (decimalPart) {
+            words += 'and ' + decimalPart + '/100';
+        }
+        
+        return words.trim() + ' US Dollars';
+    }
+    
+    // Function to update AED price and words
+    function updateAEDPrice() {
+        const usdPrice = parseFloat(priceUsdInput.value) || 0;
+        const aedPrice = usdPrice * 3.67; // Fixed exchange rate
+        aedPriceInput.value = aedPrice.toFixed(2);
+        
+        // Update words
+        const usdWords = numberToWords(usdPrice);
+        const aedWords = numberToWords(aedPrice).replace('US Dollars', 'UAE Dirhams');
+        
+        priceUsdInWordInput.value = usdWords;
+        aedPriceInWordInput.value = aedWords;
+    }
+    
+    // Add event listener for USD price changes
+    priceUsdInput.addEventListener('input', updateAEDPrice);
+    
+    // Initial calculation
+    updateAEDPrice();
+});
+</script>
 {% endblock %} 

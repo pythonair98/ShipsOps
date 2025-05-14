@@ -136,7 +136,17 @@ def invoice_new(request):
         else:
             messages.error(request, f'Error creating invoice: {form.errors}')
     else:
-        form = InvoiceForm()
+        # Get the contract ID from the URL if present
+        contract_id = request.GET.get('contract')
+        initial_data = {}
+        if contract_id:
+            try:
+                contract = Contract.objects.get(id=contract_id)
+                initial_data['contract'] = contract
+            except Contract.DoesNotExist:
+                messages.warning(request, 'Selected contract not found')
+        
+        form = InvoiceForm(initial=initial_data)
     
     context = {
         'form': form,
@@ -398,10 +408,7 @@ def dashboard_home(request):
     recent_contracts = Contract.objects.order_by('-created_at')[:5]
     
     # Get monthly data for contracts, invoices and revenue
-    months = []
-    contract_data = []
-    invoice_data = []
-    revenue_data = []
+    monthly_data = []
     
     # Generate data for the last 6 months
     for i in range(5, -1, -1):
@@ -426,19 +433,21 @@ def dashboard_home(request):
             created_at__lt=next_month
         ).aggregate(total=models.Sum('price_usd'))['total'] or 0
         
-        # Append data
-        months.append(month_name)
-        contract_data.append(month_contracts)
-        invoice_data.append(month_invoices)
-        revenue_data.append(month_revenue)
+        # Append data with full date for sorting
+        monthly_data.append({
+            'month': month_name,
+            'month_date': month_date.strftime('%Y-%m'),  # Add full date for sorting
+            'contract_count': month_contracts,
+            'invoice_count': month_invoices,
+            'invoice_value': float(month_revenue)  # Ensure it's a float
+        })
     
-    # Monthly data for charts
-    monthly_data = {
-        'months': months,
-        'contracts': contract_data,
-        'invoices': invoice_data,
-        'revenue': revenue_data
-    }
+    # Sort monthly data by date
+    monthly_data.sort(key=lambda x: x['month_date'])
+    
+    # Remove the sorting key before sending to template
+    for item in monthly_data:
+        del item['month_date']
     
     context = {
         'contract_count': contract_count,
@@ -448,7 +457,10 @@ def dashboard_home(request):
         'contract_status': contract_status,
         'status_percentages': status_percentages,
         'recent_contracts': recent_contracts,
-        'monthly_data': monthly_data
+        'monthly_data': monthly_data,
+        'pending_contracts': contract_status['Pending'],
+        'finance_contracts': contract_status['Finance'],
+        'billed_contracts': contract_status['Billed']
     }
     
     return render(request, 'ShipOps/dashboard.html', context)

@@ -1,76 +1,251 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 {% block title %}Invoices{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
+  <!-- Header Section -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="h3 mb-0 text-gray-800">Invoice Management</h2>
+    <div>
+      <h2 class="h3 mb-0 text-gray-800">Invoice Management</h2>
+      <p class="text-muted mt-2">Manage and track all your invoices in one place</p>
+    </div>
     <a href="{% url 'invoice_new' %}" class="btn btn-success">
       <i class="fas fa-plus-circle me-2"></i>New Invoice
     </a>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Invoices</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ invoices.paginator.count }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-file-invoice fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Paid Invoices</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% with paid_count=invoices|filter_invoices_by_status:"paid" %}
+                  {{ paid_count|length }}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Invoices</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% with pending_count=invoices|filter_invoices_by_status:"pending" %}
+                  {{ pending_count|length }}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-clock fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-left-danger shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Overdue Invoices</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {% with overdue_count=invoices|filter_invoices_by_status:"overdue" %}
+                  {{ overdue_count|length }}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Invoice List Card -->
   <div class="card shadow">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
       <h6 class="m-0 fw-bold text-primary">All Invoices</h6>
-      <span class="text-muted small">
-        Showing {{ invoices.start_index }} to {{ invoices.end_index }} of {{ invoices.paginator.count }} invoices
-      </span>
+      <div class="d-flex align-items-center">
+        <span class="text-muted small me-3">
+          Showing {{ invoices.start_index }} to {{ invoices.end_index }} of {{ invoices.paginator.count }} invoices
+        </span>
+        <div class="btn-group">
+          <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-filter me-1"></i>Filter
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="?status=all">All Invoices</a></li>
+            <li><a class="dropdown-item" href="?status=paid">Paid</a></li>
+            <li><a class="dropdown-item" href="?status=pending">Pending</a></li>
+            <li><a class="dropdown-item" href="?status=overdue">Overdue</a></li>
+          </ul>
+        </div>
+      </div>
     </div>
     <div class="card-body">
       <div class="table-responsive">
         <table class="table table-hover align-middle">
           <thead class="table-light">
             <tr>
-              <th scope="col">Invoice Number</th>
-              <th scope="col">Contract</th>
-              <th scope="col">Date</th>
-              <th scope="col">Amount</th>
-              <th scope="col">Status</th>
-              <th scope="col">Actions</th>
+              <th scope="col" class="text-center" style="width: 60px;">#</th>
+              <th scope="col" style="width: 20%;">Contract Details</th>
+              <th scope="col" style="width: 12%;">Amount</th>
+              <th scope="col" style="width: 10%;">Status</th>
+              <th scope="col" style="width: 12%;">Dates</th>
+              <th scope="col" style="width: 12%;">Payment Info</th>
+              <th scope="col" style="width: 12%;">Notes</th>
+              <th scope="col" style="width: 12%;">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for invoice in invoices %}
             <tr>
-              <td class="text-center">{{ invoice.id }}</td>
-              <td>{{ invoice.contract.vessel }} - {{ invoice.contract.charterer }}</td>
-              <td>{{ invoice.created_at|date:"M d, Y" }}</td>
-              <td>
-                ${{ invoice.price_usd|floatformat:2 }}
-                {% if invoice.aed_price %}
-                <small class="text-muted d-block">(AED {{ invoice.aed_price|floatformat:2 }})</small>
-                {% endif %}
+              <td class="text-center">
+                <span class="badge bg-primary rounded-pill">#{{ invoice.id }}</span>
               </td>
               <td>
-                <span class="badge bg-{{ invoice.get_status_display_class }}">
-                  {{ invoice.get_status_display }}
-                </span>
-                {% if invoice.is_overdue %}
-                <span class="badge bg-danger ms-1">Overdue</span>
-                {% endif %}
-                {% if invoice.due_date %}
-                <small class="d-block text-muted mt-1">Due: {{ invoice.due_date|date:"M d, Y" }}</small>
-                {% endif %}
+                <div class="d-flex flex-column">
+                  <span class="fw-bold">{{ invoice.contract.vessel }}</span>
+                  <span class="text-muted small">{{ invoice.contract.charterer }}</span>
+                  <span class="text-muted small">Contract #{{ invoice.contract.id }}</span>
+                  <span class="text-muted small">
+                    <i class="fas fa-file-contract me-1"></i>{{ invoice.contract.charter_party_form }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex flex-column">
+                  <span class="fw-bold">${{ invoice.price_usd|floatformat:2 }}</span>
+                  {% if invoice.aed_price %}
+                  <span class="text-muted small">AED {{ invoice.aed_price|floatformat:2 }}</span>
+                  {% endif %}
+                  {% if invoice.price_usd_in_word %}
+                  <span class="text-muted small" style="font-size: 0.75rem;" data-bs-toggle="tooltip" title="{{ invoice.price_usd_in_word }}">
+                    <i class="fas fa-text-width me-1"></i>{{ invoice.price_usd_in_word|truncatechars:30 }}
+                  </span>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div class="d-flex flex-column">
+                  <span class="badge bg-{{ invoice.get_status_display_class }} mb-1">
+                    {{ invoice.get_status_display }}
+                  </span>
+                  {% if invoice.is_overdue %}
+                  <span class="badge bg-danger">Overdue</span>
+                  {% endif %}
+                  {% if invoice.contract.state == 'active' %}
+                  <span class="badge bg-success">Active Contract</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div class="d-flex flex-column">
+                  <span class="text-muted small">
+                    <i class="fas fa-calendar-plus me-1"></i>Created: {{ invoice.created_at|date:"M d, Y" }}
+                  </span>
+                  {% if invoice.due_date %}
+                  <span class="text-muted small">
+                    <i class="fas fa-calendar-check me-1"></i>Due: {{ invoice.due_date|date:"M d, Y" }}
+                  </span>
+                  {% endif %}
+                  {% if invoice.contract.contract_start %}
+                  <span class="text-muted small">
+                    <i class="fas fa-calendar-alt me-1"></i>Contract: {{ invoice.contract.contract_start|date:"M d, Y" }}
+                  </span>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div class="d-flex flex-column">
+                  {% if invoice.contract.payment_terms %}
+                  <span class="text-muted small">
+                    <i class="fas fa-money-bill-wave me-1"></i>{{ invoice.contract.payment_terms }}
+                  </span>
+                  {% endif %}
+                  {% if invoice.contract.payment_to %}
+                  <span class="text-muted small">
+                    <i class="fas fa-university me-1"></i>{{ invoice.contract.payment_to }}
+                  </span>
+                  {% endif %}
+                  {% if invoice.contract.commission %}
+                  <span class="text-muted small">
+                    <i class="fas fa-percentage me-1"></i>Commission: {{ invoice.contract.commission }}%
+                  </span>
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <div class="d-flex flex-column">
+                  {% if invoice.notes %}
+                  <span class="text-muted small" data-bs-toggle="tooltip" title="{{ invoice.notes }}">
+                    <i class="fas fa-sticky-note me-1"></i>{{ invoice.notes|truncatechars:50 }}
+                  </span>
+                  {% endif %}
+                  {% if invoice.contract.brokers %}
+                  <span class="text-muted small">
+                    <i class="fas fa-user-tie me-1"></i>{{ invoice.contract.brokers }}
+                  </span>
+                  {% endif %}
+                </div>
               </td>
               <td>
                 <div class="btn-group" role="group">
-                  <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-sm btn-info">
-                    <i class="fas fa-eye me-1"></i>View
+                  <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-sm btn-info" data-bs-toggle="tooltip" title="View Details">
+                    <i class="fas fa-eye"></i>
                   </a>
-                  <a href="{% url 'invoice_edit' invoice.id %}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-edit me-1"></i>Edit
+                  <a href="{% url 'invoice_edit' invoice.id %}" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" title="Edit Invoice">
+                    <i class="fas fa-edit"></i>
                   </a>
-                  <a href="/export_invoice/{{ invoice.id }}/" class="btn btn-sm btn-success">
-                    <i class="fas fa-file-export me-1"></i>Export
+                  <a href="/export_invoice/{{ invoice.id }}/" class="btn btn-sm btn-success" data-bs-toggle="tooltip" title="Export PDF">
+                    <i class="fas fa-file-export"></i>
                   </a>
+                  {% if invoice.status == 'pending' %}
+                  <a href="#" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Mark as Paid">
+                    <i class="fas fa-check"></i>
+                  </a>
+                  {% endif %}
                 </div>
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="6" class="text-center py-4">No invoices found</td>
+              <td colspan="8" class="text-center py-4">
+                <div class="text-muted">
+                  <i class="fas fa-file-invoice fa-3x mb-3"></i>
+                  <p class="mb-0">No invoices found</p>
+                </div>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -136,4 +311,14 @@
   </nav>
   {% endif %}
 </div>
+
+<!-- Initialize tooltips -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Delete User{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Confirm Delete User</h5>
+                </div>
+                <div class="card-body">
+                    <p>Are you sure you want to delete the user "{{ user.get_full_name }}"?</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-danger">Delete User</button>
+                            <a href="{% url 'ShipsAuth:user_list_auth' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

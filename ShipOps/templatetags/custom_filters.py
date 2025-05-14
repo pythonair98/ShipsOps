@@ -1,4 +1,6 @@
 from django import template
+from django.template.defaultfilters import stringfilter
+from ShipOps.models import Contract, Invoice
 
 register = template.Library()
 
@@ -49,3 +51,30 @@ def divide(value, arg):
         return float(value) / float(arg)
     except (ValueError, TypeError, ZeroDivisionError):
         return 0 
+
+@register.filter
+def filter_contracts_without_invoice(contracts):
+    """
+    Filter a list of contracts to return only those without invoices.
+    
+    Args:
+        contracts: A queryset or list of Contract objects
+        
+    Returns:
+        A list of Contract objects that don't have associated invoices
+    """
+    return [contract for contract in contracts if not hasattr(contract, 'invoice_obj')]
+
+@register.filter
+def filter_invoices_by_status(invoices, status):
+    """
+    Filter a list of invoices by their status.
+    Usage: {{ invoices|filter_invoices_by_status:"paid" }}
+    """
+    if not invoices:
+        return []
+    
+    if status == 'all':
+        return invoices
+    
+    return [invoice for invoice in invoices if invoice.status == status] 

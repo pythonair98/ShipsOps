@@ -29,14 +29,45 @@ class InvoiceForm(forms.ModelForm):
     This form maps to the Invoice model and includes fields for price information
     in multiple currencies and the associated contract.
     """
+    price_usd = forms.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'})
+    )
+    
+    aed_price = forms.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        required=True,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'readonly': 'readonly'})
+    )
+    
+    price_usd_in_word = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+    )
+    
+    aed_price_in_word = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+    )
 
     class Meta:
         model = Invoice
         fields = [
-            'price_usd', 
-            'price_usd_in_word', 
-            'aed_price', 
-            'aed_price_in_word', 
-            'contract'
+            'contract',
+            'price_usd',
+            'price_usd_in_word',
+            'aed_price',
+            'aed_price_in_word',
+            'status',
+            'due_date',
+            'notes'
         ]
-        # 'created_at' is auto-generated and excluded
+        widgets = {
+            'contract': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4})
+        }

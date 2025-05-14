@@ -73,7 +73,7 @@ class LoginForm(forms.Form):
 
 
 class RegisterForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput)
+    password = forms.CharField(widget=forms.PasswordInput, required=False)
     confirm_password = forms.CharField(widget=forms.PasswordInput, required=False)
     profile_image = forms.ImageField(required=False)
     phone_number = forms.CharField(max_length=100, required=False)
@@ -108,6 +108,8 @@ class RegisterForm(forms.ModelForm):
         
         # If this is a new user or password is being changed
         if not self.instance.pk or password:
+            if not password:
+                raise forms.ValidationError("Password is required for new users")
             if password != confirm_password:
                 raise forms.ValidationError("Passwords do not match")
         

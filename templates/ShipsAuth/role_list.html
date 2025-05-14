@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}Role Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="h3 mb-0 text-gray-800">Role Management</h2>
+      <p class="text-muted mt-1 mb-0">Manage system roles and their permissions</p>
+    </div>
+  </div>
+
+  <!-- Roles List -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 fw-bold text-primary">System Roles</h6>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Role Name</th>
+              <th scope="col">Description</th>
+              <th scope="col">Users</th>
+              <th scope="col" style="width: 130px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for role in roles %}
+            <tr>
+              <td>{{ role.get_name_display }}</td>
+              <td>{{ role.description|default:"No description" }}</td>
+              <td>{{ role.userprofile_set.count }}</td>
+              <td>
+                <button type="button" class="btn btn-sm btn-primary edit-role-permissions" data-id="{{ role.id }}" data-name="{{ role.get_name_display }}">
+                  <i class="fas fa-user-shield me-1"></i>Edit Permissions
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-4">No roles found</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Role Permissions Modal -->
+<div class="modal fade" id="editRolePermissionsModal" tabindex="-1" aria-labelledby="editRolePermissionsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editRolePermissionsModalLabel">Edit Role Permissions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-role-permissions-form">
+          <input type="hidden" id="role-id" name="role_id">
+          <div class="mb-3">
+            <h6 class="role-name mb-3"></h6>
+            <div class="permissions-container">
+              <div class="accordion" id="permissionsAccordion">
+                <!-- Permission groups will be loaded here -->
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-role-permissions">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit Role Permissions
+    document.querySelectorAll('.edit-role-permissions').forEach(button => {
+        button.addEventListener('click', function() {
+            const roleId = this.getAttribute('data-id');
+            const roleName = this.getAttribute('data-name');
+            
+            // Set the role name in the modal
+            document.querySelector('#editRolePermissionsModal .role-name').textContent = roleName;
+            document.getElementById('role-id').value = roleId;
+            
+            // Show the modal first
+            const permissionsModal = new bootstrap.Modal(document.getElementById('editRolePermissionsModal'));
+            permissionsModal.show();
+            
+            // Then load the permission groups
+            loadRolePermissions(roleId);
+        });
+    });
+    
+    // Save Role Permissions
+    document.getElementById('save-role-permissions')?.addEventListener('click', function() {
+        const form = document.getElementById('edit-role-permissions-form');
+        const roleId = document.getElementById('role-id').value;
+        
+        // Collect all permissions
+        const permissions = {};
+        form.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            permissions[checkbox.name] = checkbox.checked;
+        });
+        
+        // Send to server
+        fetch(`/auth/roles/${roleId}/permissions/update/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(permissions)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const toast = new bootstrap.Toast(document.createElement('div'));
+                toast.show();
+                
+                // Close the modal
+                bootstrap.Modal.getInstance(document.getElementById('editRolePermissionsModal')).hide();
+                
+                // Refresh the page
+                location.reload();
+            } else {
+                alert(data.error || 'Error saving permissions');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving permissions:', error);
+            alert('Error saving permissions. Please try again.');
+        });
+    });
+    
+    function loadRolePermissions(roleId) {
+        const modal = document.getElementById('editRolePermissionsModal');
+        const modalBody = modal.querySelector('.modal-body');
+        const modalFooter = modal.querySelector('.modal-footer');
+
+        fetch(`/auth/roles/${roleId}/permissions/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.success) {
+                modalBody.innerHTML = `
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        ${data.error || 'You do not have permission to view or edit role permissions.'}
+                    </div>
+                    <div class="text-center mt-3">
+                        <p class="text-muted">Please contact your system administrator if you need access to this feature.</p>
+                    </div>
+                `;
+                modalFooter.style.display = 'none';
+                return;
+            }
+
+            // Show the modal footer
+            modalFooter.style.display = 'block';
+
+            // Get permission groups
+            fetch('/auth/permission-groups/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(groupsData => {
+                if (!groupsData.success) {
+                    throw new Error('Failed to load permission groups');
+                }
+
+                const permissionGroupsContainer = document.getElementById('permissionsAccordion');
+                permissionGroupsContainer.innerHTML = ''; // Clear existing content
+                
+                // Create accordion items for each permission group
+                Object.entries(groupsData.permission_groups).forEach(([groupKey, group], index) => {
+                    const accordionItem = document.createElement('div');
+                    accordionItem.className = 'accordion-item';
+                    accordionItem.innerHTML = `
+                        <h2 class="accordion-header" id="heading${index}">
+                            <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="${index === 0}" aria-controls="collapse${index}">
+                                ${group.name}
+                            </button>
+                        </h2>
+                        <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" aria-labelledby="heading${index}" data-bs-parent="#permissionsAccordion">
+                            <div class="accordion-body">
+                                <div class="row g-3">
+                                    ${group.permissions.map(perm => `
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="${perm}" name="${perm}">
+                                                <label class="form-check-label" for="${perm}">${perm.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    permissionGroupsContainer.appendChild(accordionItem);
+                });
+
+                // Set the current permissions
+                Object.entries(data.permissions).forEach(([perm, value]) => {
+                    const checkbox = document.getElementById(perm);
+                    if (checkbox) {
+                        checkbox.checked = value;
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading permission groups:', error);
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading permission groups.
+                    </div>
+                `;
+                modalFooter.style.display = 'none';
+            });
+        })
+        .catch(error => {
+            console.error('Error loading role permissions:', error);
+            modalBody.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    An error occurred while loading permissions.
+                </div>
+                <div class="text-center mt-3">
+                    <p class="text-muted">Please try again later or contact support if the problem persists.</p>
+                </div>
+            `;
+            modalFooter.style.display = 'none';
+        });
+    }
+    
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+
+<style>
+.permissions-container {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(0,0,0,.125);
+}
+
+.form-check {
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+</style>
+{% endblock %} 

@@ -108,6 +108,54 @@ class Contract(models.Model):
         """
         return getattr(self, 'invoice_obj', None)
 
+    @property
+    def contract_value(self):
+        """
+        Calculates and returns the contract value in USD.
+        
+        Returns:
+            float: The contract value in USD if an invoice exists, otherwise 0.0
+        """
+        if self.invoice and self.invoice.price_usd is not None:
+            return float(self.invoice.price_usd)
+        return 0.0
+
+    @property
+    def contract_value_aed(self):
+        """
+        Calculates and returns the contract value in AED.
+        
+        Returns:
+            float: The contract value in AED if an invoice exists, otherwise 0.0
+        """
+        if self.invoice and self.invoice.aed_price is not None:
+            return float(self.invoice.aed_price)
+        return 0.0
+
+    @property
+    def contract_value_in_words(self):
+        """
+        Returns the contract value in words (USD).
+        
+        Returns:
+            str: The contract value in words if an invoice exists, otherwise empty string
+        """
+        if self.invoice and self.invoice.price_usd_in_word:
+            return self.invoice.price_usd_in_word
+        return ""
+
+    @property
+    def contract_value_aed_in_words(self):
+        """
+        Returns the contract value in words (AED).
+        
+        Returns:
+            str: The contract value in AED words if an invoice exists, otherwise empty string
+        """
+        if self.invoice and self.invoice.aed_price_in_word:
+            return self.invoice.aed_price_in_word
+        return ""
+
     def __str__(self):
         return f"Contract #{self.id} for vessel {self.vessel}"
 

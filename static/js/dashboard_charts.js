@@ -57,21 +57,31 @@ function initContractStatusChart(pending, finance, billed) {
 }
 
 // Initialize Revenue Trends Chart
-function initRevenueChart(months, revenues, contracts) {
-  console.log("Initializing Revenue Chart with data:", {months, revenues, contracts});
+function initRevenueChart(months, revenues, contracts, canvasId = 'revenueChart') {
+  console.log("Initializing Revenue Chart with data:", {months, revenues, contracts, canvasId});
   
   // Make sure we have the canvas element
-  var ctx = document.getElementById('revenueChart');
+  var ctx = document.getElementById(canvasId);
   if (!ctx) {
-    console.error("Revenue Chart canvas not found");
+    console.error(`Revenue Chart canvas not found with ID: ${canvasId}`);
     return;
   }
   
   // Check if we have valid data
   if (!months || !months.length || !revenues || !contracts) {
-    console.error("Revenue Chart missing data");
+    console.error("Revenue Chart missing data:", {months, revenues, contracts});
     return;
   }
+  
+  // Format the data
+  const formattedRevenues = revenues.map(value => parseFloat(value) || 0);
+  const formattedContracts = contracts.map(value => parseInt(value) || 0);
+  
+  console.log("Formatted data:", {
+    months,
+    formattedRevenues,
+    formattedContracts
+  });
   
   // Create the line chart
   new Chart(ctx, {
@@ -92,7 +102,7 @@ function initRevenueChart(months, revenues, contracts) {
           pointHoverBorderColor: "rgba(78, 115, 223, 1)",
           pointHitRadius: 10,
           pointBorderWidth: 2,
-          data: revenues,
+          data: formattedRevenues,
           yAxisID: 'y-axis-1',
         },
         {
@@ -108,7 +118,7 @@ function initRevenueChart(months, revenues, contracts) {
           pointHoverBorderColor: "rgba(28, 200, 138, 1)",
           pointHitRadius: 10,
           pointBorderWidth: 2,
-          data: contracts,
+          data: formattedContracts,
           yAxisID: 'y-axis-2',
         }
       ],
@@ -144,7 +154,7 @@ function initRevenueChart(months, revenues, contracts) {
               maxTicksLimit: 5,
               padding: 10,
               callback: function(value, index, values) {
-                return '$' + value;
+                return '$' + value.toLocaleString();
               }
             },
             gridLines: {
@@ -186,9 +196,23 @@ function initRevenueChart(months, revenues, contracts) {
         displayColors: false,
         intersect: false,
         mode: 'index',
-        caretPadding: 10
+        caretPadding: 10,
+        callbacks: {
+          label: function(tooltipItem, data) {
+            var label = data.datasets[tooltipItem.datasetIndex].label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (tooltipItem.datasetIndex === 0) {
+              label += '$' + tooltipItem.yLabel.toLocaleString();
+            } else {
+              label += tooltipItem.yLabel;
+            }
+            return label;
+          }
+        }
       }
     }
   });
-  console.log("Revenue Chart initialized successfully");
+  console.log(`Revenue Chart initialized successfully for canvas: ${canvasId}`);
 } 

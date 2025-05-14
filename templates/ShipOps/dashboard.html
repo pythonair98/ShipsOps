@@ -134,7 +134,7 @@
         </div>
         <div class="card-body">
           <div class="chart-area">
-            <canvas id="myAreaChart"></canvas>
+            <canvas id="revenueChart"></canvas>
           </div>
         </div>
       </div>
@@ -217,7 +217,7 @@
         </div>
         <div class="card-body">
           <div class="chart-area">
-            <canvas id="revenueChart" height="300"></canvas>
+            <canvas id="revenueTrendsChart" height="300"></canvas>
           </div>
         </div>
       </div>
@@ -679,17 +679,34 @@
 
 <!-- Store Django values in a data element -->
 <script type="text/template" id="dashboard-data">
-  {
-    "pendingCount": {{ pending_contracts|default:0 }},
-    "financeCount": {{ finance_contracts|default:0 }},
-    "billedCount": {{ billed_contracts|default:0 }},
-    "monthlyData": {{ monthly_data|safe|default:"[]" }}
-  }
+{
+  "pendingCount": {{ pending_contracts|default:0 }},
+  "financeCount": {{ finance_contracts|default:0 }},
+  "billedCount": {{ billed_contracts|default:0 }}
+}
 </script>
+
+<!-- Monthly data in a separate script tag -->
+{{ monthly_data|json_script:"monthly-data" }}
+
+<!-- Debug output -->
+<div style="display: none;">
+  <pre id="debug-output"></pre>
+</div>
 
 <!-- Then use pure JavaScript for initialization -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // Debug output
+    var dataElement = document.getElementById('dashboard-data');
+    var monthlyDataElement = document.getElementById('monthly-data');
+    var debugOutput = document.getElementById('debug-output');
+    
+    if (dataElement && debugOutput) {
+      debugOutput.textContent = dataElement.textContent;
+      console.log("Dashboard data:", dataElement.textContent);
+    }
+    
     // Initialize progress bars
     document.querySelectorAll('.progress-contract').forEach(function(bar) {
       var value = bar.getAttribute('data-value') || 0;
@@ -701,16 +718,19 @@
     
     // Parse the data from template
     try {
-      var dataElement = document.getElementById('dashboard-data');
-      if (!dataElement) {
-        console.error("Dashboard data element not found");
+      if (!dataElement || !monthlyDataElement) {
+        console.error("Required data elements not found");
         return;
       }
       
-      var dataJson = dataElement.textContent;
+      var dataJson = dataElement.textContent.trim();
+      console.log("Raw JSON data:", dataJson);
       var dashboardData = JSON.parse(dataJson);
       
-      console.log("Dashboard data:", dashboardData);
+      // Add monthly data from the separate script tag
+      dashboardData.monthlyData = JSON.parse(monthlyDataElement.textContent);
+      
+      console.log("Parsed dashboard data:", dashboardData);
       
       // Initialize contract status chart
       if (typeof initContractStatusChart === 'function') {
@@ -729,14 +749,23 @@
         var revenues = [];
         var contracts = [];
         
+        // Sort monthly data by month to ensure correct order
+        dashboardData.monthlyData.sort((a, b) => {
+          return new Date(a.month + ' 1, 2024') - new Date(b.month + ' 1, 2024');
+        });
+        
         dashboardData.monthlyData.forEach(function(item) {
           months.push(item.month);
           revenues.push(parseFloat(item.invoice_value) || 0);
           contracts.push(parseInt(item.contract_count) || 0);
         });
         
+        console.log("Processed monthly data:", { months, revenues, contracts });
+        
         if (months.length > 0) {
-          initRevenueChart(months, revenues, contracts);
+          // Initialize both revenue charts
+          initRevenueChart(months, revenues, contracts, 'revenueChart');
+          initRevenueChart(months, revenues, contracts, 'revenueTrendsChart');
         } else {
           console.error("No monthly data available for revenue chart");
         }
@@ -745,6 +774,8 @@
       }
     } catch(e) {
       console.error("Error initializing dashboard charts:", e);
+      console.error("Error details:", e.message);
+      console.error("Error stack:", e.stack);
     }
     
     // Initialize date range picker
