@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -1343,3 +1343,14 @@ def maintenance_report_view(request):
     }
     
     return render(request, 'ShipOps/reports/report_types/maintenance_report.html', context)
+
+def invoice_report_view(request, invoice_id):
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    contract = invoice.contract
+    date = invoice.created_at or datetime.now()
+    context = {
+        'invoice': invoice,
+        'contract': contract,
+        'date': date,
+    }
+    return render(request, 'ShipOps/invoice_report.html', context)

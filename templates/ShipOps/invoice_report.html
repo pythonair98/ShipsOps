@@ -1,13 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice</title>
-    <link rel="stylesheet" href="../static/css/invoice/invoice.css" />
+    <link rel="stylesheet" href="{% static 'css/invoice/invoice.css' %}" />
+    
 </head>
 
 <body>
@@ -29,13 +30,13 @@
             <h1>VESSEL CHARTERING INVOICE</h1>
             <div class="info">
             <p><input style="border: 0" type="text" value="INV REF.0902"></p>
-                <p>Date: {{ date.strftime('%Y-%m-%d') }}</p>
+                <p>Date: {{ date|date:"Y-m-d" }}</p>
                 <p>Our TAX REGISTARTION NUMBER:100021551500003</p>
             </div>
             <!-- ./info -->
             <div class="send">
                 <p>To: {{ contract.charterer}}</p>
-                <p>Ref Charter Party Date {{ contract.charter_party_dated.strftime('%Y-%m-%d')}}</p>
+                <p>Ref Charter Party Date {{ contract.charter_party_dated|date:"Y-m-d"}}</p>
             </div>
             <!-- ./send -->
             <table>
@@ -51,25 +52,25 @@
                     <tr>
                     <td><input style="border: 0" type="text"></td>
                         <td class="empty"></td>
-                        <td>{{ contract.invoice.price_usd }}</td>
-                        <td>{{ contract.invoice.price_usd }}</td>
+                        <td>{{ invoice.price_usd }}</td>
+                        <td>{{ invoice.price_usd }}</td>
                     </tr>
                     <tr class="color-cell">
-                        <td colspan="3">{{ contract.invoice.price_usd_in_word}}</td>
+                        <td colspan="3">{{ invoice.price_usd_in_word}}</td>
 
-                        <td>{{ contract.invoice.price_usd }}</td>
+                        <td>{{ invoice.price_usd }}</td>
                     </tr>
                     <tr>
                         <td colspan="3" style="text-align:right">VAT 5%</td>
                         <td>0</td>
                     </tr>
                     <tr>
-                        <td colspan="3">{{ contract.invoice.price_usd_in_word}}</td>
-                        <td>{{ contract.invoice.price_usd }}</td>
+                        <td colspan="3">{{ invoice.price_usd_in_word}}</td>
+                        <td>{{ invoice.price_usd }}</td>
                     </tr>
                     <tr>
-                        <td colspan="3">{{ contract.invoice.aed_price_in_word }}</td>
-                        <td>{{ contract.invoice.aed_price }}</td>
+                        <td colspan="3">{{ invoice.aed_price_in_word }}</td>
+                        <td>{{ invoice.aed_price }}</td>
                     </tr>
 
                 </tbody>
@@ -84,6 +85,10 @@
                     Swift:ADCBAEAA</p>
             </div>
             <!-- ./sub-menu -->
+            <p>Contract Value: {{ contract.contract_value }}</p>
+            <p>Contract Value in Words: {{ contract.contract_value_in_words }}</p>
+            <p>Contract Value in AED: {{ contract.contract_value_aed }}</p>
+            <p>Contract Value in AED in Words: {{ contract.contract_value_aed_in_words }}</p>
         </div>
     </div>
     <!-- End Content -->

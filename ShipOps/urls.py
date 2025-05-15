@@ -27,6 +27,7 @@ from .views import (
     invoice_reports_view,
     vessel_performance_view,
     maintenance_report_view,
+    invoice_report_view,
 )
 
 # URL patterns for the ShipOps application
@@ -47,6 +48,7 @@ urlpatterns = [
     path('invoice/<int:invoice_id>/', invoice_detail, name='invoice_detail'),
     path('invoice/edit/<int:invoice_id>/', invoice_edit, name='invoice_edit'),
     path('invoice/delete/<int:invoice_id>/', invoice_delete, name='invoice_delete'),
+    path('invoice/<int:invoice_id>/report/', invoice_report_view, name='invoice_report'),
     
     # Contract state change URL
     path('contract/<int:contract_id>/change-state/', contract_change_state, name='contract_change_state'),

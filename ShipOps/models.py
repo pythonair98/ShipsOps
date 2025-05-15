@@ -107,6 +107,13 @@ class Contract(models.Model):
         Returns the invoice associated with this contract, if one exists.
         """
         return getattr(self, 'invoice_obj', None)
+    
+    @property
+    def invoices(self):
+        """
+        Returns all invoices associated with this contract.
+        """
+        return Invoice.objects.filter(contract=self).all()
 
     @property
     def contract_value(self):
