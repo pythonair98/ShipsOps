@@ -1,47 +1,202 @@
 {% extends "base.html" %}
+{% load auth_filters %}
 {% block title %}Role Management{% endblock %}
+
+{% block extra_css %}
+<!-- Add Chart.js CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css">
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-  <!-- Page Header -->
+  <!-- Enhanced Page Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="h3 mb-0 text-gray-800">Role Management</h2>
+      <h2 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-user-shield me-2 text-primary"></i>Role Management
+      </h2>
       <p class="text-muted mt-1 mb-0">Manage system roles and their permissions</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#roleStatsModal">
+        <i class="fas fa-chart-pie me-1"></i>Role Statistics
+      </button>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+        <i class="fas fa-plus me-1"></i>Create New Role
+      </button>
     </div>
   </div>
 
-  <!-- Roles List -->
-  <div class="card shadow mb-4">
-    <div class="card-header py-3">
-      <h6 class="m-0 fw-bold text-primary">System Roles</h6>
+  <!-- Role Statistics Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                <i class="fas fa-users"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h6 class="mb-1">Total Roles</h6>
+              <h3 class="mb-0">{{ roles|length }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card-body">
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="stat-icon bg-success bg-opacity-10 text-success">
+                <i class="fas fa-user-check"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h6 class="mb-1">Active Users</h6>
+              <h3 class="mb-0">{{ total_active_users }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="stat-icon bg-info bg-opacity-10 text-info">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h6 class="mb-1">Total Permissions</h6>
+              <h3 class="mb-0">{{ total_permissions }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="flex-shrink-0">
+              <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                <i class="fas fa-clock"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1 ms-3">
+              <h6 class="mb-1">Last Updated</h6>
+              <h3 class="mb-0">{{ last_updated|date:"M d" }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Roles List -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <h6 class="m-0 fw-bold text-primary">
+          <i class="fas fa-list me-2"></i>System Roles
+        </h6>
+        <div class="d-flex gap-2">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" class="form-control border-start-0" id="roleSearch" placeholder="Search roles...">
+          </div>
+          <div class="dropdown">
+            <button class="btn btn-light" type="button" data-bs-toggle="dropdown">
+              <i class="fas fa-filter"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" data-sort="name">Sort by Name</a></li>
+              <li><a class="dropdown-item" href="#" data-sort="users">Sort by Users</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" data-filter="all">Show All</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead class="table-light">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-light">
             <tr>
-              <th scope="col">Role Name</th>
+              <th scope="col" class="ps-4">Role Name</th>
               <th scope="col">Description</th>
               <th scope="col">Users</th>
-              <th scope="col" style="width: 130px;">Actions</th>
+              <th scope="col">Last Modified</th>
+              <th scope="col" style="width: 150px;">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for role in roles %}
             <tr>
-              <td>{{ role.get_name_display }}</td>
-              <td>{{ role.description|default:"No description" }}</td>
-              <td>{{ role.userprofile_set.count }}</td>
+              <td class="ps-4">
+                <div class="d-flex align-items-center">
+                  <div class="role-icon bg-primary bg-opacity-10 text-primary me-3">
+                    <i class="fas fa-user-shield"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">{{ role.get_name_display }}</h6>
+                    <small class="text-muted">ID: {{ role.id }}</small>
+                  </div>
+                </div>
+              </td>
               <td>
-                <button type="button" class="btn btn-sm btn-primary edit-role-permissions" data-id="{{ role.id }}" data-name="{{ role.get_name_display }}">
-                  <i class="fas fa-user-shield me-1"></i>Edit Permissions
-                </button>
+                <p class="mb-0">{{ role.description|default:"No description" }}</p>
+                <small class="text-muted">{{ role.permissions.count }} permissions</small>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {% if total_users %}{{ role.userprofile_set.count|percentage:total_users }}{% else %}0{% endif %}%"></div>
+                  </div>
+                  <span class="badge bg-light text-dark">{{ role.userprofile_set.count }}</span>
+                </div>
+              </td>
+              <td>
+                <small class="text-muted">{{ role.updated_at|date:"M d, Y" }}</small>
+              </td>
+              <td>
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-outline-primary edit-role-permissions" data-id="{{ role.id }}" data-name="{{ role.get_name_display }}">
+                    <i class="fas fa-user-shield me-1"></i>Permissions
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                    <i class="fas fa-ellipsis-v"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{% url 'ShipsAuth:edit_role' role.id %}"><i class="fas fa-edit me-2"></i>Edit Role</a></li>
+                    <li><a class="dropdown-item" href="{% url 'ShipsAuth:role_users' role.id %}"><i class="fas fa-users me-2"></i>View Users</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash-alt me-2"></i>Delete Role</a></li>
+                  </ul>
+                </div>
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="4" class="text-center py-4">No roles found</td>
+              <td colspan="5" class="text-center py-5">
+                <div class="empty-state">
+                  <i class="fas fa-user-shield fa-3x text-muted mb-3"></i>
+                  <h5>No Roles Found</h5>
+                  <p class="text-muted">Get started by creating your first role</p>
+                  <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+                    <i class="fas fa-plus me-1"></i>Create Role
+                  </button>
+                </div>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -51,19 +206,30 @@
   </div>
 </div>
 
-<!-- Edit Role Permissions Modal -->
+<!-- Enhanced Edit Role Permissions Modal -->
 <div class="modal fade" id="editRolePermissionsModal" tabindex="-1" aria-labelledby="editRolePermissionsModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="editRolePermissionsModalLabel">Edit Role Permissions</h5>
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="editRolePermissionsModalLabel">
+          <i class="fas fa-user-shield me-2 text-primary"></i>
+          Edit Role Permissions
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <form id="edit-role-permissions-form">
           <input type="hidden" id="role-id" name="role_id">
-          <div class="mb-3">
-            <h6 class="role-name mb-3"></h6>
+          <div class="mb-4">
+            <div class="d-flex align-items-center mb-3">
+              <div class="role-icon bg-primary bg-opacity-10 text-primary me-3">
+                <i class="fas fa-user-shield"></i>
+              </div>
+              <div>
+                <h6 class="role-name mb-0"></h6>
+                <small class="text-muted">Manage role permissions and access levels</small>
+              </div>
+            </div>
             <div class="permissions-container">
               <div class="accordion" id="permissionsAccordion">
                 <!-- Permission groups will be loaded here -->
@@ -72,9 +238,46 @@
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="save-role-permissions">Save Changes</button>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-role-permissions">
+          <i class="fas fa-save me-1"></i>Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Role Statistics Modal -->
+<div class="modal fade" id="roleStatsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title">
+          <i class="fas fa-chart-pie me-2 text-primary"></i>
+          Role Statistics
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <h6 class="card-title mb-3">User Distribution</h6>
+                <canvas id="userDistributionChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <h6 class="card-title mb-3">Permission Usage</h6>
+                <canvas id="permissionUsageChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -82,6 +285,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Add Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Edit Role Permissions
@@ -277,14 +483,141 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return cookieValue;
     }
+
+    // Role Search Functionality
+    const roleSearch = document.getElementById('roleSearch');
+    if (roleSearch) {
+        roleSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const roleName = row.querySelector('h6').textContent.toLowerCase();
+                const description = row.querySelector('p').textContent.toLowerCase();
+                row.style.display = roleName.includes(searchTerm) || description.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+
+    // Initialize Charts
+    const userDistributionCtx = document.getElementById('userDistributionChart');
+    const permissionUsageCtx = document.getElementById('permissionUsageChart');
+
+    if (userDistributionCtx) {
+        const userDistributionChart = new Chart(userDistributionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ user_distribution|safe }}.map(item => item.name),
+                datasets: [{
+                    data: {{ user_distribution|safe }}.map(item => item.count),
+                    backgroundColor: [
+                        '#0d6efd',  // Primary
+                        '#198754',  // Success
+                        '#ffc107',  // Warning
+                        '#dc3545',  // Danger
+                        '#0dcaf0',  // Info
+                        '#6c757d'   // Secondary
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} users (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    if (permissionUsageCtx) {
+        const permissionUsageChart = new Chart(permissionUsageCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Read', 'Write', 'Delete', 'Admin'],
+                datasets: [{
+                    label: 'Permission Usage',
+                    data: [
+                        {{ permission_usage.read }},
+                        {{ permission_usage.write }},
+                        {{ permission_usage.delete }},
+                        {{ permission_usage.admin }}
+                    ],
+                    backgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw || 0;
+                                return `${value} users`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
 });
 </script>
 
 <style>
+/* Enhanced Styles */
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.role-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.empty-state {
+    padding: 2rem;
+    text-align: center;
+}
+
 .permissions-container {
     background-color: #f8f9fa;
-    padding: 1rem;
-    border-radius: 0.5rem;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
 }
 
 .accordion-button:not(.collapsed) {
@@ -298,12 +631,36 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .form-check {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .form-check-input:checked {
     background-color: #0d6efd;
     border-color: #0d6efd;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .table-responsive {
+        margin: 0 -1rem;
+    }
+    
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn-group .dropdown-menu {
+        position: static !important;
+        transform: none !important;
+    }
 }
 </style>
 {% endblock %} 

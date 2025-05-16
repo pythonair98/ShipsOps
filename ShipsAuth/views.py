@@ -430,7 +430,39 @@ def get_permission_groups(request):
 def role_list(request):
     """View for displaying all roles and their permissions"""
     roles = UserRole.objects.all()
-    return render(request, 'ShipsAuth/role_list.html', {'roles': roles})
+    total_users = UserProfile.objects.count()
+    total_active_users = UserProfile.objects.filter(user__is_active=True).count()
+    total_permissions = len([f for f in UserPermissions._meta.fields if f.name.startswith('can_')])
+    last_updated = UserRole.objects.latest('updated_at').updated_at if roles.exists() else None
+
+    # Get user distribution data for the chart
+    user_distribution = []
+    for role in roles:
+        user_count = role.userprofile_set.count()
+        if user_count > 0:  # Only include roles with users
+            user_distribution.append({
+                'name': role.get_name_display(),
+                'count': user_count
+            })
+
+    # Get permission usage data
+    permission_usage = {
+        'read': UserPermissions.objects.filter(can_view_contracts=True).count(),
+        'write': UserPermissions.objects.filter(can_edit_contracts=True).count(),
+        'delete': UserPermissions.objects.filter(can_delete_contracts=True).count(),
+        'admin': UserProfile.objects.filter(role__name='system_admin').count()
+    }
+
+    context = {
+        'roles': roles,
+        'total_users': total_users,
+        'total_active_users': total_active_users,
+        'total_permissions': total_permissions,
+        'last_updated': last_updated,
+        'user_distribution': user_distribution,
+        'permission_usage': permission_usage
+    }
+    return render(request, 'ShipsAuth/role_list.html', context)
 
 @login_required
 @require_http_methods(["GET"])
@@ -525,3 +557,91 @@ def update_role_permissions(request, role_id):
             'success': False,
             'error': str(e)
         }, status=500)
+
+@login_required
+def role_users_view(request, role_id):
+    """View for displaying users with a specific role"""
+    role = get_object_or_404(UserRole, id=role_id)
+    users = UserProfile.objects.filter(role=role).select_related('user')
+    
+    # Get user statistics
+    total_users = users.count()
+    active_users = users.filter(user__is_active=True).count()
+    
+    # Get all roles for the role filter
+    roles = UserRole.objects.all()
+    
+    # Get unique departments for the department filter
+    departments = UserProfile.objects.values_list('department', flat=True).distinct()
+    
+    context = {
+        'role': role,
+        'users': users,
+        'total_users': total_users,
+        'active_users': active_users,
+        'roles': roles,
+        'departments': departments
+    }
+    return render(request, 'ShipsAuth/role_users.html', context)
+
+@login_required
+def edit_role_view(request, role_id):
+    """View for editing role details"""
+    role = get_object_or_404(UserRole, id=role_id)
+    
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        
+        if name and name in dict(UserRole.ROLE_CHOICES):
+            role.name = name
+            role.description = description
+            role.save()
+            messages.success(request, 'Role updated successfully')
+            return redirect('ShipsAuth:role_list')
+        else:
+            messages.error(request, 'Invalid role name')
+    
+    # Get all permissions for the permissions modal
+    permissions = UserPermissions._meta.fields
+    permissions = [field for field in permissions if field.name.startswith('can_')]
+    
+    # Get current role permissions
+    role_permissions = []
+    temp_permissions = UserPermissions()
+    role.set_default_permissions(temp_permissions)
+    for field in permissions:
+        if getattr(temp_permissions, field.name):
+            role_permissions.append(field.name)
+    
+    # Get user statistics
+    total_users = role.userprofile_set.count()
+    active_users = role.userprofile_set.filter(user__is_active=True).count()
+    
+    context = {
+        'role': role,
+        'role_choices': UserRole.ROLE_CHOICES,
+        'permissions': permissions,
+        'role_permissions': role_permissions,
+        'total_users': total_users,
+        'active_users': active_users
+    }
+    return render(request, 'ShipsAuth/edit_role.html', context)
+
+@login_required
+def delete_role_view(request, role_id):
+    """View for deleting a role"""
+    role = get_object_or_404(UserRole, id=role_id)
+    
+    if request.method == 'POST':
+        # Check if there are any users with this role
+        users_with_role = UserProfile.objects.filter(role=role).count()
+        if users_with_role > 0:
+            messages.error(request, f'Cannot delete role: {users_with_role} users are currently assigned to this role')
+            return redirect('ShipsAuth:edit_role', role_id=role_id)
+        
+        role.delete()
+        messages.success(request, 'Role deleted successfully')
+        return redirect('ShipsAuth:role_list')
+    
+    return render(request, 'ShipsAuth/confirm_delete_role.html', {'role': role})
