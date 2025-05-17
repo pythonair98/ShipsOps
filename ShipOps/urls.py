@@ -28,12 +28,16 @@ from .views import (
     vessel_performance_view,
     maintenance_report_view,
     invoice_report_view,
+    landing_page,
 )
 
 # URL patterns for the ShipOps application
 urlpatterns = [
-    # Dashboard URL
-    path('', dashboard_home, name='home'),
+    # Landing page URL (for non-authenticated users)
+    path('', landing_page, name='landing'),
+    
+    # Dashboard URL (for authenticated users)
+    path('dashboard/', dashboard_home, name='home'),
     
     # Contract related URLs
     path('contract/', contract_list, name='contract_list'),
@@ -71,6 +75,4 @@ urlpatterns = [
     path('vessel/<int:vessel_id>/maintenance/new/', maintenance_create, name='maintenance_create'),
     path('maintenance/<int:maintenance_id>/edit/', maintenance_edit, name='maintenance_edit'),
     path('maintenance/<int:maintenance_id>/delete/', maintenance_delete, name='maintenance_delete'),
-    
-    # Old Reporting & Analytics URLs (will be replaced)
 ]

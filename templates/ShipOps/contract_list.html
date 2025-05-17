@@ -11,55 +11,21 @@
         <div class="card-header bg-light">
           <div class="d-flex justify-content-between align-items-center">
             <h3 class="mb-0"><i class="fas fa-file-contract me-2"></i>Contract Management</h3>
-            <button type="button" class="btn main-btn" data-bs-toggle="modal" data-bs-target="#add_contract">
+            <a href="{% url 'contract_new' %}" class="btn main-btn">
               <i class="fas fa-plus-circle me-2"></i>Add Contract
-            </button>
+            </a>
           </div>
         </div>
-        <!-- Add this after the card header and before the table -->
+        <!-- Messages -->
         <div class="card-body pb-0">
-          {% with contracts_without_invoice=contracts|filter_contracts_without_invoice %}
-            {% if contracts_without_invoice %}
-              <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-exclamation-triangle me-2"></i>
-                  <div>
-                    <strong>Notice:</strong> {{ contracts_without_invoice|length }} contract{{ contracts_without_invoice|length|pluralize }} 
-                    {% if contracts_without_invoice|length == 1 %}
-                      has no invoice
-                    {% else %}
-                      have no invoices
-                    {% endif %}
-                    <button type="button" class="btn btn-sm btn-outline-warning ms-2" data-bs-toggle="collapse" data-bs-target="#contractsWithoutInvoice">
-                      View Details
-                    </button>
-                  </div>
-                </div>
-                <div class="collapse mt-2" id="contractsWithoutInvoice">
-                  <div class="card card-body bg-light">
-                    <ul class="list-unstyled mb-0">
-                      {% for contract in contracts_without_invoice %}
-                        <li class="mb-2">
-                          <div class="d-flex align-items-center">
-                            <i class="fas fa-ship text-primary me-2"></i>
-                            <span class="me-2">{{ contract.vessel }}</span>
-                            <span class="text-muted me-2">-</span>
-                            <span class="me-2">{{ contract.charterer }}</span>
-                            <a href="{% url 'invoice_new' %}?contract={{ contract.id }}" 
-                               class="btn btn-sm btn-outline-warning ms-auto">
-                              <i class="fas fa-plus-circle me-1"></i>
-                              Add Invoice
-                            </a>
-                          </div>
-                        </li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                </div>
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
               </div>
+            {% endfor %}
             {% endif %}
-          {% endwith %}
         </div>
         <!-- State Filter -->
         <div class="card-body p-0">
@@ -104,110 +70,24 @@
               <tbody>
                 {% for contract in contracts %}
                 <tr>
-                  <td class="text-nowrap" style="width: 12%">
-                    <div class="d-flex align-items-center">
-                      <i class="fas fa-calendar-alt text-primary me-2"></i>
-                      {{ contract.charter_party_dated|date:"M d, Y" }}
-                    </div>
-                  </td>
-                  <td style="width: 15%">
-                    <div class="d-flex align-items-center">
-                      <i class="fas fa-user-tie text-info me-2"></i>
-                      <span class="text-truncate" style="max-width: 120px;" title="{{ contract.charterer }}">
-                        {{ contract.charterer }}
-                      </span>
-                    </div>
-                  </td>
-                  <td style="width: 12%">
-                    <div class="d-flex align-items-center">
-                      <i class="fas fa-ship text-success me-2"></i>
-                      <span class="text-truncate" style="max-width: 100px;" title="{{ contract.vessel }}">
-                        {{ contract.vessel }}
-                      </span>
-                    </div>
-                  </td>
-                  <td style="width: 10%">
+                  <td>{{ contract.charter_party_dated|date:"M d, Y" }}</td>
+                  <td>{{ contract.charterer }}</td>
+                  <td>{{ contract.vessel }}</td>
+                  <td>
                     {% if contract.state == 0 %}
-                    <span class="badge bg-warning text-dark">
-                      <i class="fas fa-clock me-1"></i>Pending
-                    </span>
+                    <span class="badge bg-warning text-dark">Pending</span>
                     {% elif contract.state == 1 %}
-                    <span class="badge bg-success">
-                      <i class="fas fa-money-check-alt me-1"></i>Finance
-                    </span>
+                    <span class="badge bg-info">Finance</span>
                     {% elif contract.state == 2 %}
-                    <span class="badge bg-info">
-                      <i class="fas fa-file-invoice-dollar me-1"></i>Billed
-                    </span>
+                    <span class="badge bg-primary">Billed</span>
                     {% else %}
-                    <span class="badge bg-secondary">
-                      <i class="fas fa-question-circle me-1"></i>Unknown
-                    </span>
+                    <span class="badge bg-success">Completed</span>
                     {% endif %}
                   </td>
-                  <td class="text-nowrap" style="width: 12%">
-                    <div class="d-flex align-items-center">
-                      <i class="fas fa-calendar-week text-primary me-2"></i>
-                      <span class="text-truncate" style="max-width: 100px;" title="{{ contract.laycan }}">
-                        {{ contract.laycan }}
-                      </span>
-                    </div>
-                  </td>
-                  <td style="width: 15%">
-                    <div class="d-flex align-items-center">
-                      <i class="fas fa-dollar-sign text-success me-2"></i>
-                      {% if contract.contract_value %}
-                        <div class="d-flex flex-column">
-                          <span class="fw-bold">${{ contract.contract_value|floatformat:2 }}</span>
-                          <small class="text-muted contract-value-words" 
-                                 data-bs-toggle="tooltip" 
-                                 data-bs-placement="top" 
-                                 title="{{ contract.contract_value_in_words }}">
-                            {{ contract.contract_value_in_words|truncatechars:20 }}
-                          </small>
-                        </div>
-                      {% else %}
-                        <div class="d-flex flex-column">
-                          <span class="text-muted">-</span>
-                          <a href="{% url 'invoice_new' %}?contract={{ contract.id }}" 
-                             class="btn btn-sm btn-outline-warning mt-1" 
-                             data-bs-toggle="tooltip" 
-                             data-bs-placement="top" 
-                             title="Create invoice for this contract">
-                            <i class="fas fa-exclamation-circle me-1"></i>
-                            Add Invoice
-                          </a>
-                        </div>
-                      {% endif %}
-                    </div>
-                  </td>
-                  <td style="width: 15%">
-                    <div class="d-flex align-items-center">
-                      <i class="fas fa-dollar-sign text-success me-2"></i>
-                      {% if contract.contract_value_aed %}
-                        <div class="d-flex flex-column">
-                          <span class="fw-bold">AED {{ contract.contract_value_aed|floatformat:2 }}</span>
-                          <small class="text-muted contract-value-words" 
-                                 data-bs-toggle="tooltip" 
-                                 data-bs-placement="top" 
-                                 title="{{ contract.contract_value_aed_in_words }}">
-                            {{ contract.contract_value_aed_in_words|truncatechars:20 }}
-                          </small>
-                        </div>
-                      {% else %}
-                        <div class="d-flex flex-column">
-                          <span class="text-muted">-</span>
-                          <small class="text-muted">No AED value</small>
-                        </div>
-                      {% endif %}
-                    </div>
-                  </td>
-                  <td class="text-nowrap" style="width: 10%">
-                    <div class="d-flex align-items-center">
-                      <i class="fas fa-clock text-muted me-2"></i>
-                      {{ contract.created_at|date:"M d, Y" }}
-                    </div>
-                  </td>
+                  <td>{{ contract.laycan }}</td>
+                  <td>${{ contract.contract_value_usd|floatformat:2 }}</td>
+                  <td>AED {{ contract.contract_value_aed|floatformat:2 }}</td>
+                  <td>{{ contract.created_at|date:"M d, Y" }}</td>
                   <td style="width: 10%">
                     <div class="btn-group" role="group">
                       <a href="{% url 'contract_detail' contract.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
@@ -271,281 +151,4 @@
     </div>
   </div>
 </div>
-
-<!-- The Modal -->
-<div class="modal fade" id="add_contract" tabindex="-1" aria-labelledby="addContractModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
-    <div class="modal-content border-0 shadow">
-      <!-- Modal Header -->
-      <div class="modal-header bg-light">
-        <h5 class="modal-title" id="addContractModalLabel"><i class="fas fa-plus-circle me-2"></i>Add New Contract</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <!-- Modal body -->
-      <div class="modal-body p-4">
-        {% if messages %}
-          {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-          {% endfor %}
-        {% endif %}
-        
-        <form id="my-form" method="post" action="{% url 'contract_new' %}">
-          {% csrf_token %}
-          <div class="row g-3">
-            {% for field in form %}
-            <div class="col-md-3 mb-3">
-              <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-              <div class="input-group">
-                <span class="input-group-text">
-                  {% if 'date' in field.name %}
-                    <i class="fas fa-calendar"></i>
-                  {% elif 'charterer' in field.name %}
-                    <i class="fas fa-user-tie"></i>
-                  {% elif 'vessel' in field.name %}
-                    <i class="fas fa-ship"></i>
-                  {% else %}
-                    <i class="fas fa-file-alt"></i>
-                  {% endif %}
-                </span>
-                {{ field }}
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-          <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-              <i class="fas fa-times me-1"></i>Cancel
-            </button>
-            <button type="submit" class="btn main-btn">
-              <i class="fas fa-save me-1"></i>Save Contract
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Add this CSS to your existing styles -->
-<style>
-  .table-responsive {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    overflow-x: auto;
-  }
-  
-  .table {
-    width: 100%;
-    margin-bottom: 0;
-    table-layout: fixed;
-  }
-  
-  .table th,
-  .table td {
-    padding: 0.5rem;
-    vertical-align: middle;
-  }
-  
-  .text-truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  .contract-value-words {
-    cursor: help;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 150px;
-  }
-  
-  .btn-group {
-    white-space: nowrap;
-  }
-  
-  .btn-group .btn {
-    padding: 0.25rem 0.5rem;
-  }
-  
-  @media (max-width: 1200px) {
-    .table th,
-    .table td {
-      padding: 0.5rem;
-    }
-    
-    .contract-value-words {
-      max-width: 120px;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .table-responsive {
-      border: 0;
-    }
-    
-    .table thead {
-      display: none;
-    }
-    
-    .table tbody tr {
-      display: block;
-      margin-bottom: 1rem;
-      border: 1px solid #dee2e6;
-      border-radius: 0.25rem;
-    }
-    
-    .table tbody td {
-      display: block;
-      text-align: right;
-      padding: 0.75rem;
-      border: none;
-      border-bottom: 1px solid #dee2e6;
-      width: 100% !important;
-    }
-    
-    .table tbody td:last-child {
-      border-bottom: 0;
-    }
-    
-    .table tbody td::before {
-      content: attr(data-label);
-      float: left;
-      font-weight: 600;
-    }
-    
-    .contract-value-words {
-      max-width: none;
-      white-space: normal;
-    }
-    
-    .btn-group {
-      display: flex;
-      justify-content: flex-end;
-    }
-    
-    .btn-outline-warning {
-      width: 100%;
-      margin-top: 0.5rem;
-    }
-  }
-  
-  .btn-outline-warning {
-    border-color: #ffc107;
-    color: #856404;
-    background-color: #fff3cd;
-    font-size: 0.75rem;
-    padding: 0.2rem 0.5rem;
-    transition: all 0.2s ease-in-out;
-  }
-  
-  .btn-outline-warning:hover {
-    background-color: #ffeeba;
-    border-color: #ffc107;
-    color: #856404;
-  }
-  
-  .btn-outline-warning i {
-    color: #ffc107;
-  }
-  
-  .alert-warning {
-    background-color: #fff3cd;
-    border-color: #ffeeba;
-    color: #856404;
-  }
-  
-  .alert-warning .btn-outline-warning {
-    border-color: #856404;
-    color: #856404;
-    background-color: transparent;
-  }
-  
-  .alert-warning .btn-outline-warning:hover {
-    background-color: #856404;
-    color: #fff;
-  }
-  
-  #contractsWithoutInvoice .card-body {
-    background-color: #fff;
-    border: 1px solid #ffeeba;
-  }
-  
-  #contractsWithoutInvoice li:last-child {
-    margin-bottom: 0 !important;
-  }
-  
-  @media (max-width: 768px) {
-    .alert-warning .d-flex {
-      flex-direction: column;
-      align-items: flex-start !important;
-    }
-    
-    .alert-warning .btn-outline-warning {
-      margin-top: 0.5rem;
-      margin-left: 0 !important;
-    }
-    
-    #contractsWithoutInvoice .d-flex {
-      flex-direction: column;
-      align-items: flex-start !important;
-    }
-    
-    #contractsWithoutInvoice .btn-outline-warning {
-      margin-top: 0.5rem;
-      margin-left: 0 !important;
-      width: 100%;
-    }
-  }
-</style>
-
-<!-- Add this JavaScript for responsive behavior -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Add data labels for mobile view
-    const tableCells = document.querySelectorAll('.table tbody td');
-    const headers = Array.from(document.querySelectorAll('.table thead th')).map(th => th.textContent.trim());
-    
-    tableCells.forEach((cell, index) => {
-      const headerIndex = index % headers.length;
-      cell.setAttribute('data-label', headers[headerIndex]);
-    });
-  });
-
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl, {
-        html: true,
-        trigger: 'hover'
-      });
-    });
-  });
-
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl, {
-        html: true,
-        trigger: 'hover'
-      });
-    });
-    
-    // Auto-hide alert after 10 seconds
-    var alert = document.querySelector('.alert-warning');
-    if (alert) {
-      setTimeout(function() {
-        var bsAlert = new bootstrap.Alert(alert);
-        bsAlert.close();
-      }, 10000);
-    }
-  });
-</script>
 {% endblock %}

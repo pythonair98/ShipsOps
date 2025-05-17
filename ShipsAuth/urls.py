@@ -6,6 +6,7 @@ from .views import (
     role_list, get_role_permissions, update_role_permissions, role_users_view, edit_role_view,
     delete_role_view
 )
+from ShipOps.views import user_analytics
 
 app_name = 'ShipsAuth'
 
@@ -30,6 +31,7 @@ urlpatterns = [
     path('permission-groups/', get_permission_groups, name='get_permission_groups'),
     path('permissions/<int:user_id>/', get_user_permissions, name='get_user_permissions'),
     path('permissions/<int:user_id>/update/', update_user_permissions, name='update_user_permissions'),
+    path('analytics/', user_analytics, name='user_analytics'),
 ]
 # User management URLs
 

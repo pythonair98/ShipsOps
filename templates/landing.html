@@ -1,0 +1,741 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome to ShipsOps{% endblock %}
+
+{% block content %}
+<!-- Hero Section with Parallax -->
+<section class="hero-section parallax-section">
+  <div class="overlay"></div>
+  <div class="container">
+    <div class="row align-items-center min-vh-100">
+      <div class="col-lg-6">
+        <h1 class="display-4 fw-bold mb-4 animate-on-scroll">Transform Your Maritime Operations</h1>
+        <p class="lead mb-4 animate-on-scroll">Empower your fleet with our comprehensive maritime operations management system. Streamline vessel tracking, contract management, and financial operations with real-time insights.</p>
+        <div class="d-flex gap-3 animate-on-scroll">
+          <a href="{% url 'login' %}" class="btn btn-gradient btn-lg pulse-animation">
+            <i class="fas fa-rocket me-2"></i>Start Free Trial
+          </a>
+          <a href="#features" class="btn btn-outline-light btn-lg">
+            <i class="fas fa-arrow-right me-2"></i>Explore Features
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="hero-image-wrapper animate-on-scroll">
+          <img src="{% static 'imgs/hero-image.png' %}" alt="ShipsOps Dashboard" class="img-fluid rounded-3 shadow-lg floating-animation">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-5">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="section-title gradient-text">Comprehensive Maritime Solutions</h2>
+      <p class="section-subtitle">Everything you need to manage your maritime operations efficiently</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i class="fas fa-ship"></i>
+          </div>
+          <h3>Fleet Management</h3>
+          <p>Real-time vessel tracking, maintenance scheduling, and document management for your entire fleet.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Vessel status monitoring</li>
+            <li><i class="fas fa-check"></i> Maintenance scheduling</li>
+            <li><i class="fas fa-check"></i> Document compliance tracking</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i class="fas fa-file-contract"></i>
+          </div>
+          <h3>Contract Management</h3>
+          <p>Streamline contract processes with automated workflows and comprehensive tracking.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Contract lifecycle management</li>
+            <li><i class="fas fa-check"></i> Automated approvals</li>
+            <li><i class="fas fa-check"></i> Document version control</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3>Financial Operations</h3>
+          <p>Comprehensive financial management with automated invoicing and payment tracking.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Automated invoicing</li>
+            <li><i class="fas fa-check"></i> Payment tracking</li>
+            <li><i class="fas fa-check"></i> Financial reporting</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i class="fas fa-chart-pie"></i>
+          </div>
+          <h3>Business Intelligence</h3>
+          <p>Make data-driven decisions with comprehensive analytics and reporting tools.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Performance analytics</li>
+            <li><i class="fas fa-check"></i> Custom reports</li>
+            <li><i class="fas fa-check"></i> Real-time dashboards</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h3>Compliance & Safety</h3>
+          <p>Ensure regulatory compliance and maintain safety standards across your operations.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Regulatory compliance tracking</li>
+            <li><i class="fas fa-check"></i> Safety incident management</li>
+            <li><i class="fas fa-check"></i> Audit trail</li>
+          </ul>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="icon-wrapper">
+            <i class="fas fa-users"></i>
+          </div>
+          <h3>Team Collaboration</h3>
+          <p>Enhance team productivity with integrated communication and task management.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Role-based access control</li>
+            <li><i class="fas fa-check"></i> Task assignment</li>
+            <li><i class="fas fa-check"></i> Team notifications</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Benefits Section with Gradient Background -->
+<section class="benefits-section py-5 gradient-bg">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="section-title text-white">Why Choose ShipsOps?</h2>
+      <p class="section-subtitle text-white-50">Join leading maritime companies in transforming their operations</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="benefit-card">
+          <i class="fas fa-rocket"></i>
+          <h4>Efficiency</h4>
+          <p>Reduce operational costs by up to 30% with automated workflows and streamlined processes</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="benefit-card">
+          <i class="fas fa-shield-alt"></i>
+          <h4>Security</h4>
+          <p>Enterprise-grade security with data encryption and role-based access control</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="benefit-card">
+          <i class="fas fa-chart-pie"></i>
+          <h4>Insights</h4>
+          <p>Make informed decisions with real-time analytics and comprehensive reporting</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="benefit-card">
+          <i class="fas fa-headset"></i>
+          <h4>Support</h4>
+          <p>24/7 dedicated support team and comprehensive training resources</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Statistics Section with Counter Animation -->
+<section class="stats-section py-5 bg-light">
+  <div class="container">
+    <div class="row g-4 text-center">
+      <div class="col-6 col-md-3">
+        <div class="stat-card" data-aos="fade-up">
+          <h3 class="stat-number counter">500</h3>
+          <p class="stat-label">Active Vessels</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card" data-aos="fade-up" data-aos-delay="100">
+          <h3 class="stat-number counter">98</h3>
+          <p class="stat-label">Customer Satisfaction</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card" data-aos="fade-up" data-aos-delay="200">
+          <h3 class="stat-number counter">30</h3>
+          <p class="stat-label">Cost Reduction</p>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card" data-aos="fade-up" data-aos-delay="300">
+          <h3 class="stat-number">24/7</h3>
+          <p class="stat-label">Support Available</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials Section with Carousel -->
+<section class="testimonials-section py-5">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="section-title gradient-text">What Our Clients Say</h2>
+      <p class="section-subtitle">Trusted by leading maritime companies worldwide</p>
+    </div>
+    <div class="testimonial-carousel">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"ShipsOps has transformed our maritime operations. The efficiency gains are remarkable."</p>
+            </div>
+            <div class="testimonial-author">
+              <img src="{% static 'imgs/avatar1.jpg' %}" alt="Client" class="rounded-circle">
+              <div>
+                <h5>John Smith</h5>
+                <p>Operations Director, Global Shipping Co.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"The analytics and reporting features have given us unprecedented visibility into our operations."</p>
+            </div>
+            <div class="testimonial-author">
+              <img src="{% static 'imgs/avatar2.jpg' %}" alt="Client" class="rounded-circle">
+              <div>
+                <h5>Sarah Johnson</h5>
+                <p>CEO, Maritime Solutions Ltd.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"The customer support team is exceptional. They're always there when we need them."</p>
+            </div>
+            <div class="testimonial-author">
+              <img src="{% static 'imgs/avatar3.jpg' %}" alt="Client" class="rounded-circle">
+              <div>
+                <h5>Michael Chen</h5>
+                <p>Fleet Manager, Pacific Shipping</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section with Parallax -->
+<section class="cta-section py-5 parallax-section">
+  <div class="overlay"></div>
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8 text-center">
+        <h2 class="mb-4 text-white">Ready to Transform Your Maritime Operations?</h2>
+        <p class="lead mb-4 text-white-50">Join leading maritime companies using ShipsOps to streamline their operations and drive growth.</p>
+        <div class="d-flex gap-3 justify-content-center">
+          <a href="{% url 'login' %}" class="btn btn-gradient btn-lg pulse-animation">
+            <i class="fas fa-rocket me-2"></i>Start Free Trial
+          </a>
+          <a href="#contact" class="btn btn-outline-light btn-lg">
+            <i class="fas fa-headset me-2"></i>Contact Sales
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Custom Properties */
+  :root {
+    --primary-gradient: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%);
+    --secondary-gradient: linear-gradient(135deg, #4361ee 0%, #4895ef 100%);
+    --accent-gradient: linear-gradient(135deg, #4cc9f0 0%, #4895ef 100%);
+    --dark-gradient: linear-gradient(135deg, #212529 0%, #343a40 100%);
+    --light-gradient: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    
+    --primary-blue: #4361ee;
+    --secondary-blue: #3f37c9;
+    --light-blue: #4895ef;
+    
+    --font-primary: 'Poppins', sans-serif;
+    --font-secondary: 'Inter', sans-serif;
+    
+    --transition-base: all 0.3s ease;
+    --transition-smooth: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Typography */
+  body {
+    font-family: var(--font-primary);
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-secondary);
+    font-weight: 700;
+  }
+
+  .gradient-text {
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Hero Section */
+  .hero-section {
+    position: relative;
+    background: var(--dark-gradient);
+    color: white;
+    overflow: hidden;
+  }
+
+  .hero-section .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+  }
+
+  .hero-section .container {
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-image-wrapper {
+    position: relative;
+  }
+
+  .floating-animation {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+    100% { transform: translateY(0px); }
+  }
+
+  /* Feature Cards */
+  .feature-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+    transition: var(--transition-smooth);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary-gradient);
+    opacity: 0;
+    transition: var(--transition-smooth);
+    z-index: 0;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
+  }
+
+  .feature-card:hover::before {
+    opacity: 0.05;
+  }
+
+  .feature-card:hover .icon-wrapper {
+    transform: scale(1.1) rotate(5deg);
+  }
+
+  .icon-wrapper {
+    width: 70px;
+    height: 70px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+  }
+
+  .feature-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--dark-color);
+  }
+
+  .feature-card p {
+    color: #6c757d;
+    margin-bottom: 1rem;
+  }
+
+  .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .feature-list li {
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+  }
+
+  .feature-list li i {
+    color: var(--primary-color);
+    margin-right: 0.5rem;
+  }
+
+  /* Benefit Cards */
+  .benefit-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  .benefit-card i {
+    color: white;
+  }
+
+  .benefit-card h4 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: var(--dark-color);
+  }
+
+  .benefit-card p {
+    color: #6c757d;
+    margin-bottom: 0;
+  }
+
+  /* Statistics Section */
+  .stat-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+    transition: var(--transition-base);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-number {
+    font-size: 3rem;
+    font-weight: 700;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .stat-label {
+    color: #6c757d;
+    margin-bottom: 0;
+  }
+
+  /* Testimonials */
+  .testimonial-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+    transition: var(--transition-base);
+  }
+
+  .testimonial-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
+  }
+
+  .testimonial-content {
+    margin-bottom: 1.5rem;
+  }
+
+  .testimonial-content p {
+    font-style: italic;
+    color: #6c757d;
+    margin-bottom: 0;
+  }
+
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+  }
+
+  .testimonial-author img {
+    width: 50px;
+    height: 50px;
+    margin-right: 1rem;
+  }
+
+  .testimonial-author h5 {
+    margin-bottom: 0.25rem;
+    color: var(--dark-color);
+  }
+
+  .testimonial-author p {
+    margin-bottom: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
+
+  /* CTA Section */
+  .cta-section {
+    position: relative;
+    background: var(--primary-gradient);
+    color: white;
+    overflow: hidden;
+  }
+
+  .cta-section .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1;
+  }
+
+  .cta-section .container {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Animations */
+  .animate-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: var(--transition-smooth);
+  }
+
+  .animate-on-scroll.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .pulse-animation {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { 
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.6);
+    }
+    70% { 
+      transform: scale(1.05);
+      box-shadow: 0 0 0 10px rgba(67, 97, 238, 0);
+    }
+    100% { 
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(67, 97, 238, 0);
+    }
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .hero-section {
+      text-align: center;
+    }
+
+    .hero-section img {
+      margin-top: 2rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+    }
+
+    .feature-card, .benefit-card, .testimonial-card {
+      margin-bottom: 1rem;
+    }
+
+    .stat-card {
+      margin-bottom: 1rem;
+    }
+  }
+
+  /* Button Styles */
+  .btn-gradient {
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    transition: var(--transition-smooth);
+  }
+
+  .btn-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--secondary-gradient);
+    opacity: 0;
+    z-index: -1;
+    transition: var(--transition-smooth);
+  }
+
+  .btn-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+  }
+
+  .btn-gradient:hover::before {
+    opacity: 1;
+  }
+
+  .btn-outline-light {
+    border: 2px solid var(--primary-blue);
+    color: var(--primary-blue);
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: var(--transition-smooth);
+    background: transparent;
+  }
+
+  .btn-outline-light:hover {
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.2);
+  }
+
+  .btn i {
+    transition: var(--transition-base);
+  }
+
+  .btn:hover i {
+    transform: translateX(3px);
+  }
+
+  .btn-gradient:hover i {
+    animation: rocket-shake 0.5s ease-in-out;
+  }
+
+  @keyframes rocket-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px) rotate(-10deg); }
+    75% { transform: translateX(3px) rotate(10deg); }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Intersection Observer for scroll animations
+  const observerOptions = {
+    root: null,
+    rootMargin: '0px',
+    threshold: 0.1
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.animate-on-scroll').forEach((element) => {
+    observer.observe(element);
+  });
+
+  // Counter animation
+  function animateCounter(element) {
+    const target = parseInt(element.textContent);
+    const duration = 2000;
+    const step = target / (duration / 16);
+    let current = 0;
+
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) {
+        element.textContent = target;
+        clearInterval(timer);
+      } else {
+        element.textContent = Math.floor(current);
+      }
+    }, 16);
+  }
+
+  // Initialize counters when they become visible
+  const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const counter = entry.target.querySelector('.counter');
+        if (counter) {
+          animateCounter(counter);
+        }
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.stat-card').forEach((element) => {
+    counterObserver.observe(element);
+  });
+
+  // Parallax effect
+  window.addEventListener('scroll', () => {
+    const parallaxElements = document.querySelectorAll('.parallax-section');
+    parallaxElements.forEach(element => {
+      const scrolled = window.pageYOffset;
+      const rate = scrolled * 0.5;
+      element.style.backgroundPositionY = `${rate}px`;
+    });
+  });
+</script>
+{% endblock %} 

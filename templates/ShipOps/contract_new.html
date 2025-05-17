@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+
+{% block title %}New Contract{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      <!-- Header Section -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <a href="{% url 'contract_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-2"></i>Back to Contracts
+          </a>
+        </div>
+        <h3 class="mb-0 text-primary">
+          <i class="fas fa-plus-circle me-2"></i>Create New Contract
+        </h3>
+        <div class="text-end">
+          <button type="submit" form="contractForm" class="btn btn-primary">
+            <i class="fas fa-save me-2"></i>Create Contract
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Form Card -->
+      <div class="card shadow-lg border-0 rounded-lg">
+        <div class="card-body p-0">
+          <form method="post" id="contractForm" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <!-- Progress Steps -->
+            <div class="progress-steps mb-4">
+              <div class="progress" style="height: 4px;">
+                <div class="progress-bar" role="progressbar" style="width: 0%;" id="formProgress"></div>
+              </div>
+              <div class="d-flex justify-content-between mt-2">
+                <span class="step active" data-step="1">Basic Info</span>
+                <span class="step" data-step="2">Contract Details</span>
+                <span class="step" data-step="3">Additional Info</span>
+              </div>
+            </div>
+
+            <!-- Form Sections -->
+            <div class="form-sections">
+              <!-- Section 1: Basic Information -->
+              <div class="section active" id="section1">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.vessel }}
+                      <label for="{{ form.vessel.id_for_label }}">Vessel</label>
+                      {% if form.vessel.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.vessel.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.charterer }}
+                      <label for="{{ form.charterer.id_for_label }}">Charterer</label>
+                      {% if form.charterer.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.charterer.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.owner }}
+                      <label for="{{ form.owner.id_for_label }}">Owner</label>
+                      {% if form.owner.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.owner.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.cargo }}
+                      <label for="{{ form.cargo.id_for_label }}">Cargo</label>
+                      {% if form.cargo.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.cargo.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 2: Contract Details -->
+              <div class="section" id="section2">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.charter_party_dated }}
+                      <label for="{{ form.charter_party_dated.id_for_label }}">Charter Party Dated</label>
+                      {% if form.charter_party_dated.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.charter_party_dated.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.contract_start }}
+                      <label for="{{ form.contract_start.id_for_label }}">Contract Start</label>
+                      {% if form.contract_start.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.contract_start.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.contract_end }}
+                      <label for="{{ form.contract_end.id_for_label }}">Contract End</label>
+                      {% if form.contract_end.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.contract_end.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.laycan }}
+                      <label for="{{ form.laycan.id_for_label }}">Laycan</label>
+                      {% if form.laycan.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.laycan.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.state }}
+                      <label for="{{ form.state.id_for_label }}">Status</label>
+                      {% if form.state.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.state.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 3: Additional Information -->
+              <div class="section" id="section3">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.charter_party_form }}
+                      <label for="{{ form.charter_party_form.id_for_label }}">Charter Party Form</label>
+                      {% if form.charter_party_form.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.charter_party_form.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.charter_party_speed }}
+                      <label for="{{ form.charter_party_speed.id_for_label }}">Charter Party Speed</label>
+                      {% if form.charter_party_speed.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.charter_party_speed.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.quantity }}
+                      <label for="{{ form.quantity.id_for_label }}">Quantity</label>
+                      {% if form.quantity.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.quantity.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.heating }}
+                      <label for="{{ form.heating.id_for_label }}">Heating</label>
+                      {% if form.heating.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.heating.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.load_port }}
+                      <label for="{{ form.load_port.id_for_label }}">Load Port</label>
+                      {% if form.load_port.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.load_port.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.discharge_port }}
+                      <label for="{{ form.discharge_port.id_for_label }}">Discharge Port</label>
+                      {% if form.discharge_port.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.discharge_port.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.freight }}
+                      <label for="{{ form.freight.id_for_label }}">Freight</label>
+                      {% if form.freight.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.freight.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.demurrage }}
+                      <label for="{{ form.demurrage.id_for_label }}">Demurrage</label>
+                      {% if form.demurrage.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.demurrage.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.laytime }}
+                      <label for="{{ form.laytime.id_for_label }}">Laytime</label>
+                      {% if form.laytime.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.laytime.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.payment_terms }}
+                      <label for="{{ form.payment_terms.id_for_label }}">Payment Terms</label>
+                      {% if form.payment_terms.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.payment_terms.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.payment_to }}
+                      <label for="{{ form.payment_to.id_for_label }}">Payment To</label>
+                      {% if form.payment_to.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.payment_to.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.brokers }}
+                      <label for="{{ form.brokers.id_for_label }}">Brokers</label>
+                      {% if form.brokers.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.brokers.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.commission }}
+                      <label for="{{ form.commission.id_for_label }}">Commission</label>
+                      {% if form.commission.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.commission.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="d-flex justify-content-between mt-4 px-4 pb-4">
+              <button type="button" class="btn btn-outline-secondary" id="prevBtn" style="display: none;">
+                <i class="fas fa-arrow-left me-2"></i>Previous
+              </button>
+              <button type="button" class="btn btn-primary" id="nextBtn">
+                Next<i class="fas fa-arrow-right ms-2"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Add Bootstrap classes to form fields
+  const formFields = document.querySelectorAll('input, select, textarea');
+  formFields.forEach(field => {
+    field.classList.add('form-control');
+  });
+
+  // Form navigation
+  let currentSection = 1;
+  const totalSections = 3;
+  const sections = document.querySelectorAll('.section');
+  const steps = document.querySelectorAll('.step');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const progressBar = document.getElementById('formProgress');
+
+  function updateNavigation() {
+    // Show/hide previous button
+    prevBtn.style.display = currentSection === 1 ? 'none' : 'block';
+    
+    // Update next button text
+    nextBtn.innerHTML = currentSection === totalSections ? 
+      'Create Contract<i class="fas fa-save ms-2"></i>' : 
+      'Next<i class="fas fa-arrow-right ms-2"></i>';
+    
+    // Update progress bar
+    const progress = ((currentSection - 1) / (totalSections - 1)) * 100;
+    progressBar.style.width = `${progress}%`;
+    
+    // Update steps
+    steps.forEach((step, index) => {
+      if (index + 1 === currentSection) {
+        step.classList.add('active');
+      } else {
+        step.classList.remove('active');
+      }
+    });
+    
+    // Show/hide sections
+    sections.forEach((section, index) => {
+      if (index + 1 === currentSection) {
+        section.classList.add('active');
+      } else {
+        section.classList.remove('active');
+      }
+    });
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentSection > 1) {
+      currentSection--;
+      updateNavigation();
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentSection < totalSections) {
+      currentSection++;
+      updateNavigation();
+    } else {
+      document.getElementById('contractForm').submit();
+    }
+  });
+
+  // Initialize navigation
+  updateNavigation();
+});
+</script>
+
+<style>
+.progress-steps {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 20px;
+}
+
+.step {
+  position: relative;
+  padding: 8px 16px;
+  background: #e9ecef;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: #6c757d;
+  transition: all 0.3s ease;
+}
+
+.step.active {
+  background: #0d6efd;
+  color: white;
+}
+
+.form-sections .section {
+  display: none;
+  padding: 20px;
+}
+
+.form-sections .section.active {
+  display: block;
+}
+
+.form-floating > .form-control {
+  height: calc(3.5rem + 2px);
+  line-height: 1.25;
+}
+
+.form-floating > label {
+  padding: 1rem 0.75rem;
+}
+
+.card {
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+  background: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+.invalid-feedback {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    padding: 1rem;
+  }
+  
+  .progress-steps {
+    margin: 10px;
+    padding: 15px;
+  }
+  
+  .step {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .form-sections .section {
+    padding: 15px;
+  }
+}
+</style>
+{% endblock %}
+
+{% endblock %} 

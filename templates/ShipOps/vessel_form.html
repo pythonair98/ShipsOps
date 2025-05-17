@@ -62,7 +62,64 @@
         <div class="row mb-3">
           <div class="col-md-6">
             <label for="flag" class="form-label">Flag</label>
-            <input type="text" class="form-control" id="flag" name="flag" value="{% if vessel %}{{ vessel.flag }}{% endif %}">
+            <select class="form-select" id="flag" name="flag">
+              <option value="">Select Country</option>
+              <option value="us" {% if vessel and vessel.flag == 'us' %}selected{% endif %}>United States</option>
+              <option value="gb" {% if vessel and vessel.flag == 'gb' %}selected{% endif %}>United Kingdom</option>
+              <option value="sg" {% if vessel and vessel.flag == 'sg' %}selected{% endif %}>Singapore</option>
+              <option value="pa" {% if vessel and vessel.flag == 'pa' %}selected{% endif %}>Panama</option>
+              <option value="lr" {% if vessel and vessel.flag == 'lr' %}selected{% endif %}>Liberia</option>
+              <option value="mh" {% if vessel and vessel.flag == 'mh' %}selected{% endif %}>Marshall Islands</option>
+              <option value="bs" {% if vessel and vessel.flag == 'bs' %}selected{% endif %}>Bahamas</option>
+              <option value="cy" {% if vessel and vessel.flag == 'cy' %}selected{% endif %}>Cyprus</option>
+              <option value="mt" {% if vessel and vessel.flag == 'mt' %}selected{% endif %}>Malta</option>
+              <option value="gr" {% if vessel and vessel.flag == 'gr' %}selected{% endif %}>Greece</option>
+              <option value="cn" {% if vessel and vessel.flag == 'cn' %}selected{% endif %}>China</option>
+              <option value="jp" {% if vessel and vessel.flag == 'jp' %}selected{% endif %}>Japan</option>
+              <option value="kr" {% if vessel and vessel.flag == 'kr' %}selected{% endif %}>South Korea</option>
+              <option value="de" {% if vessel and vessel.flag == 'de' %}selected{% endif %}>Germany</option>
+              <option value="nl" {% if vessel and vessel.flag == 'nl' %}selected{% endif %}>Netherlands</option>
+              <option value="no" {% if vessel and vessel.flag == 'no' %}selected{% endif %}>Norway</option>
+              <option value="dk" {% if vessel and vessel.flag == 'dk' %}selected{% endif %}>Denmark</option>
+              <option value="se" {% if vessel and vessel.flag == 'se' %}selected{% endif %}>Sweden</option>
+              <option value="fi" {% if vessel and vessel.flag == 'fi' %}selected{% endif %}>Finland</option>
+              <option value="it" {% if vessel and vessel.flag == 'it' %}selected{% endif %}>Italy</option>
+              <option value="fr" {% if vessel and vessel.flag == 'fr' %}selected{% endif %}>France</option>
+              <option value="es" {% if vessel and vessel.flag == 'es' %}selected{% endif %}>Spain</option>
+              <option value="pt" {% if vessel and vessel.flag == 'pt' %}selected{% endif %}>Portugal</option>
+              <option value="be" {% if vessel and vessel.flag == 'be' %}selected{% endif %}>Belgium</option>
+              <option value="ch" {% if vessel and vessel.flag == 'ch' %}selected{% endif %}>Switzerland</option>
+              <option value="at" {% if vessel and vessel.flag == 'at' %}selected{% endif %}>Austria</option>
+              <option value="pl" {% if vessel and vessel.flag == 'pl' %}selected{% endif %}>Poland</option>
+              <option value="ru" {% if vessel and vessel.flag == 'ru' %}selected{% endif %}>Russia</option>
+              <option value="tr" {% if vessel and vessel.flag == 'tr' %}selected{% endif %}>Turkey</option>
+              <option value="ae" {% if vessel and vessel.flag == 'ae' %}selected{% endif %}>United Arab Emirates</option>
+              <option value="sa" {% if vessel and vessel.flag == 'sa' %}selected{% endif %}>Saudi Arabia</option>
+              <option value="qa" {% if vessel and vessel.flag == 'qa' %}selected{% endif %}>Qatar</option>
+              <option value="kw" {% if vessel and vessel.flag == 'kw' %}selected{% endif %}>Kuwait</option>
+              <option value="bh" {% if vessel and vessel.flag == 'bh' %}selected{% endif %}>Bahrain</option>
+              <option value="om" {% if vessel and vessel.flag == 'om' %}selected{% endif %}>Oman</option>
+              <option value="in" {% if vessel and vessel.flag == 'in' %}selected{% endif %}>India</option>
+              <option value="id" {% if vessel and vessel.flag == 'id' %}selected{% endif %}>Indonesia</option>
+              <option value="my" {% if vessel and vessel.flag == 'my' %}selected{% endif %}>Malaysia</option>
+              <option value="th" {% if vessel and vessel.flag == 'th' %}selected{% endif %}>Thailand</option>
+              <option value="vn" {% if vessel and vessel.flag == 'vn' %}selected{% endif %}>Vietnam</option>
+              <option value="ph" {% if vessel and vessel.flag == 'ph' %}selected{% endif %}>Philippines</option>
+              <option value="au" {% if vessel and vessel.flag == 'au' %}selected{% endif %}>Australia</option>
+              <option value="nz" {% if vessel and vessel.flag == 'nz' %}selected{% endif %}>New Zealand</option>
+              <option value="ca" {% if vessel and vessel.flag == 'ca' %}selected{% endif %}>Canada</option>
+              <option value="mx" {% if vessel and vessel.flag == 'mx' %}selected{% endif %}>Mexico</option>
+              <option value="br" {% if vessel and vessel.flag == 'br' %}selected{% endif %}>Brazil</option>
+              <option value="ar" {% if vessel and vessel.flag == 'ar' %}selected{% endif %}>Argentina</option>
+              <option value="cl" {% if vessel and vessel.flag == 'cl' %}selected{% endif %}>Chile</option>
+              <option value="pe" {% if vessel and vessel.flag == 'pe' %}selected{% endif %}>Peru</option>
+              <option value="co" {% if vessel and vessel.flag == 'co' %}selected{% endif %}>Colombia</option>
+              <option value="za" {% if vessel and vessel.flag == 'za' %}selected{% endif %}>South Africa</option>
+              <option value="eg" {% if vessel and vessel.flag == 'eg' %}selected{% endif %}>Egypt</option>
+              <option value="ma" {% if vessel and vessel.flag == 'ma' %}selected{% endif %}>Morocco</option>
+              <option value="ng" {% if vessel and vessel.flag == 'ng' %}selected{% endif %}>Nigeria</option>
+              <option value="ke" {% if vessel and vessel.flag == 'ke' %}selected{% endif %}>Kenya</option>
+            </select>
           </div>
           <div class="col-md-6">
             <label for="status" class="form-label">Status <span class="text-danger">*</span></label>

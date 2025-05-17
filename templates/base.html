@@ -23,6 +23,8 @@
   <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="{% static 'css/all.min.css' %}" />
+  <!-- Flag Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/6.6.6/css/flag-icons.min.css" />
   <!-- Custom CSS -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <!-- Google Fonts -->
@@ -41,7 +43,7 @@
       --accent-color: #f72585;
       --light-color: #f8f9fa;
       --dark-color: #212529;
-      --sidebar-width: 250px;
+      --sidebar-width: 260px;
     }
     
     body {
@@ -62,19 +64,36 @@
       top: 0;
       overflow-y: auto;
       z-index: 1000;
-      transition: all 0.3s;
+      transition: all 0.3s ease;
+      scrollbar-width: thin;
+      scrollbar-color: var(--primary-color) transparent;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background-color: var(--primary-color);
+      border-radius: 3px;
     }
     
     .sidebar-header {
-      padding: 2rem 1rem;
+      padding: 1.5rem 1rem;
       border-bottom: 1px solid rgba(0,0,0,0.1);
       text-align: center;
+      background: linear-gradient(to right, rgba(67, 97, 238, 0.1), transparent);
     }
     
     .sidebar-brand img {
-      height: 70px;
+      height: 60px;
       display: block;
       margin: 0 auto;
+      transition: all 0.3s ease;
     }
     
     .nav-menu {
@@ -82,7 +101,8 @@
     }
     
     .nav-item {
-      margin: 0.5rem 0;
+      margin: 0.25rem 0;
+      position: relative;
     }
     
     .nav-link {
@@ -93,18 +113,45 @@
       border-radius: 0;
       display: flex;
       align-items: center;
+      position: relative;
+      overflow: hidden;
+      font-size: 0.9rem;
+      white-space: nowrap;
     }
     
     .nav-link i {
-      margin-right: 10px;
+      margin-right: 12px;
       width: 20px;
       text-align: center;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
     }
     
     .nav-link:hover, .nav-link.active {
       color: var(--primary-color);
-      background-color: rgba(67, 97, 238, 0.1);
+      background-color: rgba(67, 97, 238, 0.08);
       border-left: 4px solid var(--primary-color);
+      transform: translateX(4px);
+    }
+
+    .nav-link:hover i, .nav-link.active i {
+      transform: scale(1.1);
+    }
+
+    .nav-link::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(to right, rgba(67, 97, 238, 0.1), transparent);
+      transition: width 0.3s ease;
+    }
+
+    .nav-link:hover::before {
+      width: 100%;
     }
     
     /* Main Content */
@@ -113,6 +160,11 @@
       margin-left: var(--sidebar-width);
       width: calc(100% - var(--sidebar-width));
       transition: all 0.3s;
+    }
+
+    .main-content.full-width {
+      margin-left: 0;
+      width: 100%;
     }
     
     /* Top Bar */
@@ -123,6 +175,16 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+
+    /* Hide sidebar toggle for non-authenticated users */
+    .main-content.full-width .toggle-sidebar {
+      display: none;
+    }
+
+    /* Adjust top bar for non-authenticated users */
+    .main-content.full-width .top-bar {
+      justify-content: flex-end;
     }
     
     .main-btn {
@@ -168,10 +230,12 @@
     @media (max-width: 992px) {
       .sidebar {
         transform: translateX(-100%);
+        box-shadow: none;
       }
       
       .sidebar.active {
         transform: translateX(0);
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
       }
       
       .main-content {
@@ -179,12 +243,29 @@
         width: 100%;
       }
       
-      .sidebar-collapsed .main-content {
+      .top-bar {
+        padding: 0.5rem 1rem;
+      }
+      
+      .toggle-sidebar {
+        font-size: 1.25rem;
+      }
+      
+      .dropdown-menu {
         margin-left: 0;
+        border-radius: 0;
+        box-shadow: none;
+        background-color: rgba(67, 97, 238, 0.05);
+        border-left: 4px solid var(--primary-color);
+        padding: 0.25rem 0;
+      }
+      
+      .dropdown-item {
+        padding: 0.75rem 1.5rem;
       }
     }
     
-    /* For sidebar toggle */
+    /* Collapsed Sidebar */
     .sidebar-collapsed .sidebar {
       width: 70px;
     }
@@ -194,13 +275,29 @@
     }
     
     .sidebar-collapsed .sidebar .sidebar-brand img {
-      height: 50px;
+      height: 40px;
       margin: 0 auto;
     }
     
     .sidebar-collapsed .main-content {
       margin-left: 70px;
       width: calc(100% - 70px);
+    }
+
+    .sidebar-collapsed .nav-link {
+      padding: 0.75rem !important;
+      justify-content: center;
+    }
+
+    .sidebar-collapsed .nav-link i {
+      margin-right: 0;
+      font-size: 1.1rem;
+    }
+
+    .sidebar-collapsed .dropdown-menu {
+      position: fixed;
+      left: 70px;
+      margin-left: 0;
     }
     
     /* Dropdown menu styles */
@@ -210,18 +307,35 @@
       box-shadow: 0 5px 15px rgba(0,0,0,0.1);
       border: none;
       background-color: white;
-      min-width: 200px;
+      min-width: 220px;
+      padding: 0.5rem;
+      transform-origin: top;
+      transition: all 0.3s ease;
     }
     
     .dropdown-item {
-      padding: 0.5rem 1rem;
-      font-size: 0.9rem;
+      padding: 0.6rem 1rem;
+      font-size: 0.85rem;
       transition: all 0.2s;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+    
+    .dropdown-item i {
+      margin-right: 8px;
+      width: 16px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--primary-color);
+      flex-shrink: 0;
     }
     
     .dropdown-item:hover {
-      background-color: rgba(67, 97, 238, 0.1);
+      background-color: rgba(67, 97, 238, 0.08);
       color: var(--primary-color);
+      transform: translateX(4px);
     }
     
     .dropdown-divider {
@@ -232,17 +346,70 @@
     .nav-item.dropdown .dropdown-toggle::after {
       margin-left: 0.5rem;
     }
-    
-    /* Small screens dropdown handling */
+
+    /* Navigation Section Headers */
+    .nav-section-header {
+      padding: 1rem 1.5rem 0.5rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: var(--primary-color);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      opacity: 0.8;
+    }
+
+    .sidebar-collapsed .nav-section-header {
+      display: none;
+    }
+
     @media (max-width: 992px) {
-      .dropdown-menu {
-        margin-left: 0;
-        border-radius: 0;
-        box-shadow: none;
-        background-color: rgba(67, 97, 238, 0.05);
-        border-left: 4px solid var(--primary-color);
-        padding-top: 0;
-        padding-bottom: 0;
+      .nav-section-header {
+        padding: 0.75rem 1.5rem 0.25rem;
+      }
+    }
+
+    /* Landing Page Layout */
+    .landing-layout {
+      width: 100%;
+      min-height: 100vh;
+      background-color: #fff;
+    }
+
+    .landing-main {
+      padding: 0;
+    }
+
+    .landing-layout .top-bar {
+      background-color: transparent;
+      box-shadow: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 1.5rem 2rem;
+    }
+
+    .landing-layout .top-bar .toggle-sidebar {
+      display: none;
+    }
+
+    .landing-layout .main-btn {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .landing-layout .main-btn:hover {
+      background-color: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+      .landing-layout .top-bar {
+        padding: 1rem;
       }
     }
   </style>
@@ -282,6 +449,7 @@
 </head>
 
 <body onload="hideflashes()">
+  {% if user.is_authenticated %}
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">
@@ -293,67 +461,100 @@
       <li class="nav-item">
         <a class="nav-link active" href="{% url 'home' %}">
           <i class="fas fa-home"></i>
-          <span>Home</span>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      
+      <!-- Operations Section -->
+      <li class="nav-item">
+        <div class="nav-section-header">
+          <span>Operations</span>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'vessel_list' %}">
+          <i class="fas fa-ship"></i>
+          <span>Vessel Management</span>
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="{% url 'contract_list' %}">
           <i class="fas fa-file-contract"></i>
-          <span>Contracts</span>
+          <span>Contract Management</span>
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="{% url 'invoice_list' %}">
           <i class="fas fa-file-invoice"></i>
-          <span>Invoices</span>
+          <span>Financial Management</span>
+        </a>
+      </li>
+
+      <!-- Analytics Section -->
+      <li class="nav-item">
+        <div class="nav-section-header">
+          <span>Analytics</span>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'contract_analytics' %}">
+          <i class="fas fa-file-contract"></i>
+          <span>Contract Performance</span>
         </a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="{% url 'vessel_list' %}">
-          <i class="fas fa-ship"></i>
-          <span>Vessels</span>
+        <a class="nav-link" href="{% url 'invoice_reports' %}">
+          <i class="fas fa-file-invoice"></i>
+          <span>Financial Reports</span>
         </a>
       </li>
-      <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="fas fa-chart-bar"></i>
-          <span>Reports & Analytics</span>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'vessel_performance' %}">
+          <i class="fas fa-ship"></i>
+          <span>Vessel Analytics</span>
         </a>
-        <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
-          <li><a class="dropdown-item" href="{% url 'contract_analytics' %}">
-            <i class="fas fa-file-contract me-2"></i>Contract Analytics
-          </a></li>
-          <li><a class="dropdown-item" href="{% url 'invoice_reports' %}">
-            <i class="fas fa-file-invoice me-2"></i>Invoice Reports
-          </a></li>
-          <li><a class="dropdown-item" href="{% url 'vessel_performance' %}">
-            <i class="fas fa-ship me-2"></i>Vessel Performance
-          </a></li>
-          <li><a class="dropdown-item" href="{% url 'maintenance_report' %}">
-            <i class="fas fa-tools me-2"></i>Maintenance Reports
-          </a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="#">
-            <i class="fas fa-cog me-2"></i>Report Settings
-          </a></li>
-        </ul>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'maintenance_report' %}">
+          <i class="fas fa-tools"></i>
+          <span>Maintenance Overview</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'ShipsAuth:user_analytics' %}">
+          <i class="fas fa-user-clock"></i>
+          <span>User Activity</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">
+          <i class="fas fa-chart-line"></i>
+          <span>Custom Reports</span>
+        </a>
+      </li>
+
+      <!-- Administration Section -->
+      <li class="nav-item">
+        <div class="nav-section-header">
+          <span>Administration</span>
+        </div>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="{% url 'user_list' %}">
           <i class="fas fa-users"></i>
-          <span>Users</span>
+          <span>User Management</span>
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="{% url 'ShipsAuth:role_list' %}">
           <i class="fas fa-user-shield"></i>
-          <span>Roles</span>
+          <span>Access Control</span>
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" href="{% url 'invoice_list' %}">
           <i class="fas fa-cogs"></i>
-          <span>System Management</span>
+          <span>System Settings</span>
         </a>
       </li>
     </ul>
@@ -361,16 +562,20 @@
 
   <!-- Main Content -->
   <div class="main-content">
+  {% else %}
+  <!-- Landing Page Layout -->
+  <div class="landing-layout">
+  {% endif %}
     <!-- Top Bar -->
     <div class="top-bar">
       <div class="toggle-sidebar" onclick="toggleSidebar()">
         <i class="fas fa-bars"></i>
       </div>
       <div class="d-flex align-items-center">
-        <div class="search-icon me-3">
-          <i class="fa-solid fa-magnifying-glass"></i>
-        </div>
         {% if user.is_authenticated %}
+          <div class="search-icon me-3">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
           <a class="btn main-btn rounded-pill" href="{% url 'logout' %}">
             <i class="fas fa-sign-out-alt me-1"></i> Logout
           </a>
@@ -417,7 +622,7 @@
       {% endif %}
     </div>
 
-    <main class="py-4 px-4">
+    <main class="{% if not user.is_authenticated %}landing-main{% else %}py-4 px-4{% endif %}">
       {% block content %}{% endblock content %}
     </main>
   </div>

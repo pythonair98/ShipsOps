@@ -518,3 +518,4 @@ class UserPermissions(models.Model):
             },
         }
 
+# UserAction model has been moved to ShipOps. Remove or comment out any definition here to avoid conflicts.

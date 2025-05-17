@@ -63,6 +63,24 @@
                 </ul>
               </div>
             </div>
+            <div class="text-muted small">
+              <span class="me-3">
+                <i class="fas fa-user-plus me-1"></i>Created by: 
+                {% if contract.created_by %}
+                  {{ contract.created_by.get_full_name|default:contract.created_by.username }}
+                {% else %}
+                  <span class="text-muted">Unknown</span>
+                {% endif %}
+              </span>
+              <span>
+                <i class="fas fa-user-edit me-1"></i>Last updated by: 
+                {% if contract.updated_by %}
+                  {{ contract.updated_by.get_full_name|default:contract.updated_by.username }}
+                {% else %}
+                  <span class="text-muted">Unknown</span>
+                {% endif %}
+              </span>
+            </div>
           </div>
         </div>
         <div class="card-body">

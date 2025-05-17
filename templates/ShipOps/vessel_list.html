@@ -112,48 +112,171 @@
     </div>
     <div class="card-body">
       <div class="table-responsive">
-        <table class="table table-hover border-bottom">
-          <thead class="table-light">
-            <tr>
-              <th>Name</th>
-              <th>IMO Number</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Flag</th>
-              <th>Owner</th>
-              <th>Actions</th>
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr class="bg-light">
+              <th class="border-0" style="width: 30%">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-ship me-2 text-primary"></i>
+                  Vessel Details
+                </div>
+              </th>
+              <th class="border-0" style="width: 15%">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-hashtag me-2 text-primary"></i>
+                  IMO Number
+                </div>
+              </th>
+              <th class="border-0" style="width: 15%">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-tag me-2 text-primary"></i>
+                  Type
+                </div>
+              </th>
+              <th class="border-0" style="width: 15%">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-flag me-2 text-primary"></i>
+                  Flag
+                </div>
+              </th>
+              <th class="border-0" style="width: 15%">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-building me-2 text-primary"></i>
+                  Owner
+                </div>
+              </th>
+              <th class="border-0" style="width: 10%">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-cog me-2 text-primary"></i>
+                  Actions
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
             {% for vessel in vessels %}
             <tr>
-              <td>{{ vessel.name }}</td>
-              <td>{{ vessel.imo_number }}</td>
-              <td>{{ vessel.vessel_type }}</td>
               <td>
-                {% if vessel.status == 'operational' %}
-                <span class="badge bg-success text-white">Operational</span>
-                {% elif vessel.status == 'maintenance' %}
-                <span class="badge bg-warning text-dark">Maintenance</span>
-                {% elif vessel.status == 'repair' %}
-                <span class="badge bg-info text-white">Repair</span>
-                {% elif vessel.status == 'docked' %}
-                <span class="badge bg-secondary text-white">Docked</span>
+                <div class="d-flex align-items-center">
+                  <div class="flex-shrink-0">
+                    <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                      {{ vessel.name|make_list|first|upper }}
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-0">{{ vessel.name }}</h6>
+                    <div class="mt-1">
+                      {% if vessel.status == 'operational' %}
+                      <span class="badge bg-success text-white">
+                        <i class="fas fa-check-circle me-1"></i>Operational
+                      </span>
+                      {% elif vessel.status == 'maintenance' %}
+                      <span class="badge bg-warning text-dark">
+                        <i class="fas fa-tools me-1"></i>Maintenance
+                      </span>
+                      {% elif vessel.status == 'repair' %}
+                      <span class="badge bg-info text-white">
+                        <i class="fas fa-wrench me-1"></i>Repair
+                      </span>
+                      {% elif vessel.status == 'docked' %}
+                      <span class="badge bg-secondary text-white">
+                        <i class="fas fa-anchor me-1"></i>Docked
+                      </span>
+                      {% else %}
+                      <span class="badge bg-danger text-white">
+                        <i class="fas fa-times-circle me-1"></i>Unavailable
+                      </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="text-muted">{{ vessel.imo_number }}</span>
+              </td>
+              <td>
+                <span class="text-muted">{{ vessel.vessel_type }}</span>
+              </td>
+              <td>
+                {% if vessel.flag %}
+                <div class="d-flex align-items-center">
+                  <span class="flag-icon flag-icon-{{ vessel.flag|lower }} me-2" style="width: 1.5em; height: 1.5em;"></span>
+                  <span class="text-muted">
+                    {% if vessel.flag == 'us' %}United States
+                    {% elif vessel.flag == 'gb' %}United Kingdom
+                    {% elif vessel.flag == 'sg' %}Singapore
+                    {% elif vessel.flag == 'pa' %}Panama
+                    {% elif vessel.flag == 'lr' %}Liberia
+                    {% elif vessel.flag == 'mh' %}Marshall Islands
+                    {% elif vessel.flag == 'bs' %}Bahamas
+                    {% elif vessel.flag == 'cy' %}Cyprus
+                    {% elif vessel.flag == 'mt' %}Malta
+                    {% elif vessel.flag == 'gr' %}Greece
+                    {% elif vessel.flag == 'cn' %}China
+                    {% elif vessel.flag == 'jp' %}Japan
+                    {% elif vessel.flag == 'kr' %}South Korea
+                    {% elif vessel.flag == 'de' %}Germany
+                    {% elif vessel.flag == 'nl' %}Netherlands
+                    {% elif vessel.flag == 'no' %}Norway
+                    {% elif vessel.flag == 'dk' %}Denmark
+                    {% elif vessel.flag == 'se' %}Sweden
+                    {% elif vessel.flag == 'fi' %}Finland
+                    {% elif vessel.flag == 'it' %}Italy
+                    {% elif vessel.flag == 'fr' %}France
+                    {% elif vessel.flag == 'es' %}Spain
+                    {% elif vessel.flag == 'pt' %}Portugal
+                    {% elif vessel.flag == 'be' %}Belgium
+                    {% elif vessel.flag == 'ch' %}Switzerland
+                    {% elif vessel.flag == 'at' %}Austria
+                    {% elif vessel.flag == 'pl' %}Poland
+                    {% elif vessel.flag == 'ru' %}Russia
+                    {% elif vessel.flag == 'tr' %}Turkey
+                    {% elif vessel.flag == 'ae' %}United Arab Emirates
+                    {% elif vessel.flag == 'sa' %}Saudi Arabia
+                    {% elif vessel.flag == 'qa' %}Qatar
+                    {% elif vessel.flag == 'kw' %}Kuwait
+                    {% elif vessel.flag == 'bh' %}Bahrain
+                    {% elif vessel.flag == 'om' %}Oman
+                    {% elif vessel.flag == 'in' %}India
+                    {% elif vessel.flag == 'id' %}Indonesia
+                    {% elif vessel.flag == 'my' %}Malaysia
+                    {% elif vessel.flag == 'th' %}Thailand
+                    {% elif vessel.flag == 'vn' %}Vietnam
+                    {% elif vessel.flag == 'ph' %}Philippines
+                    {% elif vessel.flag == 'au' %}Australia
+                    {% elif vessel.flag == 'nz' %}New Zealand
+                    {% elif vessel.flag == 'ca' %}Canada
+                    {% elif vessel.flag == 'mx' %}Mexico
+                    {% elif vessel.flag == 'br' %}Brazil
+                    {% elif vessel.flag == 'ar' %}Argentina
+                    {% elif vessel.flag == 'cl' %}Chile
+                    {% elif vessel.flag == 'pe' %}Peru
+                    {% elif vessel.flag == 'co' %}Colombia
+                    {% elif vessel.flag == 'za' %}South Africa
+                    {% elif vessel.flag == 'eg' %}Egypt
+                    {% elif vessel.flag == 'ma' %}Morocco
+                    {% elif vessel.flag == 'ng' %}Nigeria
+                    {% elif vessel.flag == 'ke' %}Kenya
+                    {% else %}{{ vessel.flag|upper }}
+                    {% endif %}
+                  </span>
+                </div>
                 {% else %}
-                <span class="badge bg-danger text-white">Unavailable</span>
+                <span class="text-muted">-</span>
                 {% endif %}
               </td>
-              <td>{{ vessel.flag|default:"-" }}</td>
-              <td>{{ vessel.owner|default:"-" }}</td>
+              <td>
+                <span class="text-muted">{{ vessel.owner|default:"-" }}</span>
+              </td>
               <td>
                 <div class="btn-group">
-                  <a href="{% url 'vessel_detail' vessel.id %}" class="btn btn-sm btn-outline-primary">
+                  <a href="{% url 'vessel_detail' vessel.id %}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="View Details">
                     <i class="fas fa-eye"></i>
                   </a>
-                  <a href="{% url 'vessel_edit' vessel.id %}" class="btn btn-sm btn-outline-secondary">
+                  <a href="{% url 'vessel_edit' vessel.id %}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Edit Vessel">
                     <i class="fas fa-edit"></i>
                   </a>
-                  <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ vessel.id }}">
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ vessel.id }}" data-bs-toggle="tooltip" title="Delete Vessel">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
@@ -167,13 +290,19 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                       </div>
                       <div class="modal-body">
-                        Are you sure you want to delete vessel <strong>{{ vessel.name }}</strong>? This action cannot be undone.
+                        <div class="text-center mb-4">
+                          <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                          <p>Are you sure you want to delete vessel <strong>{{ vessel.name }}</strong>?</p>
+                          <p class="text-muted">This action cannot be undone.</p>
+                        </div>
                       </div>
                       <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <form action="{% url 'vessel_delete' vessel.id %}" method="POST" style="display: inline;">
                           {% csrf_token %}
-                          <button type="submit" class="btn btn-danger">Delete</button>
+                          <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i>Delete
+                          </button>
                         </form>
                       </div>
                     </div>
@@ -183,7 +312,15 @@
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7" class="text-center py-4">No vessels found. <a href="{% url 'vessel_create' %}">Add your first vessel</a></td>
+              <td colspan="6" class="text-center py-5">
+                <div class="text-muted">
+                  <i class="fas fa-ship fa-3x mb-3"></i>
+                  <p class="mb-2">No vessels found</p>
+                  <a href="{% url 'vessel_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add your first vessel
+                  </a>
+                </div>
+              </td>
             </tr>
             {% endfor %}
           </tbody>

@@ -15,6 +15,8 @@ from .models import (
     Vessel,
     VesselDocument,
     VesselMaintenance,
+    UserAction,
+    User,
 )
 
 
@@ -99,7 +101,10 @@ def contract_new(request):
     if request.method == "POST":
         form = ContractForm(request.POST)
         if form.is_valid():
-            contract = form.save()
+            contract = form.save(commit=False)
+            contract.created_by = request.user
+            contract.updated_by = request.user
+            contract.save()
             messages.success(request, 'Contract created successfully')
             return redirect("contract_list")
         else:
@@ -116,41 +121,39 @@ def contract_new(request):
 
 
 @login_required
-def invoice_new(request):
+def invoice_new(request, contract_id):
     """
-    View to create a new invoice.
+    View to create a new invoice for a contract.
 
     Handles both GET and POST requests. If the request method is POST, it validates and saves the form.
-    If successful, a success message is displayed, and the user is redirected to the invoice list.
+    If successful, a success message is displayed, and the user is redirected to the contract detail page.
     If the form is invalid, an error message with form errors is displayed.
 
     :param request: The HTTP request object.
+    :param contract_id: The ID of the contract to create an invoice for.
     :return: Rendered 'invoice_edit.html' template with form for invoice creation.
     """
+    contract = get_object_or_404(Contract, id=contract_id)
+    
     if request.method == "POST":
         form = InvoiceForm(request.POST)
         if form.is_valid():
-            form.save()
+            invoice = form.save(commit=False)
+            invoice.contract = contract
+            invoice.created_by = request.user
+            invoice.updated_by = request.user
+            invoice.save()
             messages.success(request, 'Invoice created successfully')
-            return redirect("invoice_list")
+            return redirect("contract_detail", contract_id=contract.id)
         else:
             messages.error(request, f'Error creating invoice: {form.errors}')
     else:
-        # Get the contract ID from the URL if present
-        contract_id = request.GET.get('contract')
-        initial_data = {}
-        if contract_id:
-            try:
-                contract = Contract.objects.get(id=contract_id)
-                initial_data['contract'] = contract
-            except Contract.DoesNotExist:
-                messages.warning(request, 'Selected contract not found')
-        
-        form = InvoiceForm(initial=initial_data)
+        form = InvoiceForm(initial={'contract': contract})
     
     context = {
         'form': form,
-        'page_title': 'Create New Invoice'
+        'contract': contract,
+        'page_title': f'Create Invoice for Contract: {contract}'
     }
     
     return render(request, 'ShipOps/invoice_edit.html', context)
@@ -173,7 +176,9 @@ def contract_edit(request, contract_id):
     if request.method == "POST":
         form = ContractForm(request.POST, instance=contract)
         if form.is_valid():
-            form.save()
+            contract = form.save(commit=False)
+            contract.updated_by = request.user
+            contract.save()
             messages.success(request, 'Contract updated successfully')
             return redirect("contract_list")
         else:
@@ -184,7 +189,7 @@ def contract_edit(request, contract_id):
     context = {
         'form': form,
         'contract': contract,
-        'page_title': 'Edit Contract'
+        'page_title': f'Edit Contract: {contract}'
     }
     
     return render(request, 'ShipOps/contract_edit.html', context)
@@ -269,11 +274,11 @@ def invoice_list(request):
 def invoice_edit(request, invoice_id):
     """
     View to edit an existing invoice.
-    
-    Handles both GET and POST requests. If the request method is POST, it validates and updates the invoice.
-    If successful, a success message is displayed, and the user is redirected to the invoice list.
+
+    Handles both GET and POST requests. If the request method is POST, it validates and saves the form.
+    If successful, a success message is displayed, and the user is redirected to the contract detail page.
     If the form is invalid, an error message with form errors is displayed.
-    
+
     :param request: The HTTP request object.
     :param invoice_id: The ID of the invoice to edit.
     :return: Rendered 'invoice_edit.html' template with form for invoice editing.
@@ -283,9 +288,11 @@ def invoice_edit(request, invoice_id):
     if request.method == "POST":
         form = InvoiceForm(request.POST, instance=invoice)
         if form.is_valid():
-            form.save()
+            invoice = form.save(commit=False)
+            invoice.updated_by = request.user
+            invoice.save()
             messages.success(request, 'Invoice updated successfully')
-            return redirect("invoice_list")
+            return redirect("contract_detail", contract_id=invoice.contract.id)
         else:
             messages.error(request, f'Error updating invoice: {form.errors}')
     else:
@@ -294,7 +301,8 @@ def invoice_edit(request, invoice_id):
     context = {
         'form': form,
         'invoice': invoice,
-        'page_title': 'Edit Invoice'
+        'contract': invoice.contract,
+        'page_title': f'Edit Invoice for Contract: {invoice.contract}'
     }
     
     return render(request, 'ShipOps/invoice_edit.html', context)
@@ -1354,3 +1362,76 @@ def invoice_report_view(request, invoice_id):
         'date': date,
     }
     return render(request, 'ShipOps/invoice_report.html', context)
+
+def landing_page(request):
+    """
+    View for the landing page (for non-authenticated users)
+    """
+    if request.user.is_authenticated:
+        return redirect('home')
+    return render(request, 'landing.html')
+
+def user_analytics(request):
+    # Get date range for filtering (default to last 30 days)
+    end_date = timezone.now()
+    start_date = end_date - timedelta(days=30)
+
+    # Get basic metrics
+    total_users = User.objects.count()
+    active_users = UserAction.objects.filter(
+        timestamp__gte=start_date
+    ).values('user').distinct().count()
+    total_actions = UserAction.objects.count()
+    avg_actions_per_user = UserAction.objects.values('user').annotate(
+        action_count=Count('id')
+    ).aggregate(avg=Avg('action_count'))['avg'] or 0
+
+    # Get activity type distribution
+    activity_types = UserAction.objects.values('action_type').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    activity_type_labels = [item['action_type'] for item in activity_types]
+    activity_type_counts = [item['count'] for item in activity_types]
+
+    # Get activity over time
+    time_data = []
+    time_labels = []
+    for i in range(30):
+        date = end_date - timedelta(days=i)
+        count = UserAction.objects.filter(
+            timestamp__date=date.date()
+        ).count()
+        time_data.insert(0, count)
+        time_labels.insert(0, date.strftime('%Y-%m-%d'))
+
+    # Get most active users
+    active_users_data = UserAction.objects.values(
+        'user__username'
+    ).annotate(
+        count=Count('id')
+    ).order_by('-count')[:10]
+    active_user_names = [item['user__username'] for item in active_users_data]
+    active_user_counts = [item['count'] for item in active_users_data]
+
+    # Get recent actions
+    recent_actions = UserAction.objects.select_related('user').order_by('-timestamp')[:20]
+
+    # Get all user actions for the detailed table
+    user_actions = UserAction.objects.select_related('user').order_by('-timestamp')
+
+    context = {
+        'total_users': total_users,
+        'active_users': active_users,
+        'total_actions': total_actions,
+        'avg_actions_per_user': avg_actions_per_user,
+        'activity_types': json.dumps(activity_type_labels),
+        'activity_type_counts': json.dumps(activity_type_counts),
+        'time_labels': json.dumps(time_labels),
+        'time_data': json.dumps(time_data),
+        'active_user_names': json.dumps(active_user_names),
+        'active_user_counts': json.dumps(active_user_counts),
+        'recent_actions': recent_actions,
+        'user_actions': user_actions,
+    }
+
+    return render(request, 'ShipOps/user_analytics.html', context)

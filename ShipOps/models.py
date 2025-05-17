@@ -74,6 +74,8 @@ class Contract(models.Model):
         contract_end: End date of the contract.
         created_at: Timestamp for when the contract was created.
         updated_at: Timestamp for the last update.
+        created_by: User who created the contract.
+        updated_by: User who last modified the contract.
     """
     charter_party_dated = models.DateTimeField(default=timezone.now)
     charterer = models.CharField(max_length=150, null=True, blank=True)
@@ -100,6 +102,8 @@ class Contract(models.Model):
     contract_end = models.DateTimeField(default=timezone.now, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='created_contracts')
+    updated_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='updated_contracts')
 
     @property
     def invoice(self):
@@ -184,6 +188,8 @@ class Invoice(models.Model):
         notes: Additional notes or comments about the invoice.
         created_at: Timestamp when the invoice was created.
         contract: One-to-one relation with a Contract (each contract has at most one invoice).
+        created_by: User who created the invoice.
+        updated_by: User who last modified the invoice.
     """
     # Status choices
     STATUS_PENDING = 0
@@ -215,6 +221,8 @@ class Invoice(models.Model):
         on_delete=models.CASCADE,
         related_name='invoice_obj'
     )
+    created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='created_invoices')
+    updated_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='updated_invoices')
 
     def is_overdue(self):
         """
@@ -312,7 +320,39 @@ class VesselMaintenance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.vessel.name} - {self.maintenance_type} ({self.scheduled_date})"
+        return f"{self.maintenance_type} for {self.vessel.name}"
     
     class Meta:
         ordering = ['-scheduled_date']
+class UserAction(models.Model):
+    ACTION_TYPES = [
+        ('view', 'View'),
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+        ('login', 'Login'),
+        ('logout', 'Logout'),
+        ('export', 'Export'),
+        ('import', 'Import'),
+        ('other', 'Other'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='actions')
+    action_type = models.CharField(max_length=10, choices=ACTION_TYPES)
+    model_name = models.CharField(max_length=50)
+    object_id = models.CharField(max_length=50, null=True, blank=True)
+    action_details = models.JSONField(default=dict)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['user', 'action_type']),
+            models.Index(fields=['model_name', 'object_id']),
+            models.Index(fields=['timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.action_type} - {self.model_name} - {self.timestamp}"
+
