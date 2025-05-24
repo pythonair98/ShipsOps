@@ -1,0 +1,708 @@
+{% load custom_filters %}
+
+<div class="financial-report">
+    <!-- Header Section -->
+    <div class="report-header mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-1">Financial Overview</h4>
+                <p class="text-muted mb-0">Last updated: {{ financial_data.last_updated }}</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-light me-2" onclick="exportReport()">
+                    <i class="fas fa-download me-1"></i> Export
+                </button>
+                <button class="btn btn-light" onclick="printReport()">
+                    <i class="fas fa-print me-1"></i> Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-icon bg-primary-light">
+                    <i class="fas fa-dollar-sign text-primary"></i>
+                </div>
+                <div class="metric-content">
+                    <h6 class="metric-label">Total Revenue</h6>
+                    <h3 class="metric-value">{{ financial_data.total_revenue|floatformat:2|intcomma }}</h3>
+                    <div class="metric-trend up">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>{{ financial_data.revenue_growth }}% vs last period</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-icon bg-warning-light">
+                    <i class="fas fa-file-invoice-dollar text-warning"></i>
+                </div>
+                <div class="metric-content">
+                    <h6 class="metric-label">Outstanding</h6>
+                    <h3 class="metric-value">{{ financial_data.outstanding_amount|floatformat:2|intcomma }}</h3>
+                    <div class="metric-trend">
+                        <i class="fas fa-clock"></i>
+                        <span>{{ financial_data.outstanding_invoices }} invoices pending</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-icon bg-success-light">
+                    <i class="fas fa-chart-line text-success"></i>
+                </div>
+                <div class="metric-content">
+                    <h6 class="metric-label">Average Invoice</h6>
+                    <h3 class="metric-value">{{ financial_data.avg_invoice|floatformat:2|intcomma }}</h3>
+                    <div class="metric-trend">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Based on {{ financial_data.total_invoices }} invoices</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-icon bg-info-light">
+                    <i class="fas fa-percentage text-info"></i>
+                </div>
+                <div class="metric-content">
+                    <h6 class="metric-label">Collection Rate</h6>
+                    <h3 class="metric-value">{{ financial_data.collection_rate }}%</h3>
+                    <div class="metric-trend">
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ financial_data.collection_rate }}%" 
+                                 aria-valuenow="{{ financial_data.collection_rate }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4">
+        <!-- Revenue Trends -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">Revenue Trends</h5>
+                        <small class="text-muted">Monthly revenue analysis</small>
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary active" onclick="updateChart('monthly')">Monthly</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateChart('quarterly')">Quarterly</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="updateChart('yearly')">Yearly</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="revenueTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Currency Distribution -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Currency Distribution</h5>
+                    <small class="text-muted">Revenue by currency</small>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="currencyDistributionChart"></canvas>
+                    </div>
+                    <div class="currency-legend mt-3">
+                        {% for currency in financial_data.currency_breakdown %}
+                        <div class="currency-item">
+                            <span class="currency-dot" style="background-color: {{ currency.color }}"></span>
+                            <span class="currency-name">{{ currency.code }}</span>
+                            <span class="currency-value">{{ currency.amount|floatformat:2|intcomma }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vessel Type Distribution -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Revenue by Vessel Type</h5>
+                    <small class="text-muted">Distribution across vessel categories</small>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="vesselTypeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collection Performance -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Collection Performance</h5>
+                    <small class="text-muted">Payment collection analysis</small>
+                </div>
+                <div class="card-body">
+                    <div class="collection-stats">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <h6>On-Time Payments</h6>
+                                    <h3>{{ financial_data.on_time_payments }}%</h3>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: {{ financial_data.on_time_payments }}%" 
+                                             aria-valuenow="{{ financial_data.on_time_payments }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <h6>Overdue Payments</h6>
+                                    <h3>{{ financial_data.overdue_payments }}%</h3>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-danger" role="progressbar" 
+                                             style="width: {{ financial_data.overdue_payments }}%" 
+                                             aria-valuenow="{{ financial_data.overdue_payments }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Financial Data -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">Detailed Financial Data</h5>
+                        <small class="text-muted">Period-wise breakdown</small>
+                    </div>
+                    <div class="table-actions">
+                        <button class="btn btn-sm btn-outline-secondary me-2" onclick="exportTable()">
+                            <i class="fas fa-file-excel me-1"></i> Export
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="printTable()">
+                            <i class="fas fa-print me-1"></i> Print
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="financialDataTable">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Revenue</th>
+                                    <th>Outstanding</th>
+                                    <th>Collection Rate</th>
+                                    <th>Avg. Invoice</th>
+                                    <th>Invoice Count</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for period in financial_data.periods %}
+                                <tr>
+                                    <td>{{ period.name }}</td>
+                                    <td>{{ period.revenue|floatformat:2|intcomma }}</td>
+                                    <td>{{ period.outstanding|floatformat:2|intcomma }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     style="width: {{ period.collection_rate }}%" 
+                                                     aria-valuenow="{{ period.collection_rate }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <span class="small">{{ period.collection_rate }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ period.avg_invoice|floatformat:2|intcomma }}</td>
+                                    <td>{{ period.invoice_count }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-link" onclick="viewPeriodDetails('{{ period.id }}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.financial-report {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+}
+
+.report-header {
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.metric-card {
+    background-color: #fff;
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.bg-primary-light { background-color: rgba(78, 115, 223, 0.1); }
+.bg-warning-light { background-color: rgba(246, 194, 62, 0.1); }
+.bg-success-light { background-color: rgba(28, 200, 138, 0.1); }
+.bg-info-light { background-color: rgba(54, 185, 204, 0.1); }
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.metric-trend {
+    font-size: 0.875rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.metric-trend.up {
+    color: #1cc88a;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 1rem 1.25rem;
+}
+
+.card-title {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.currency-legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.currency-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.currency-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.currency-name {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.currency-value {
+    margin-left: auto;
+    color: #6c757d;
+}
+
+.stat-card {
+    background-color: #fff;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    height: 100%;
+}
+
+.stat-card h6 {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.progress {
+    height: 6px;
+    background-color: #f8f9fa;
+    border-radius: 3px;
+}
+
+.progress-bar {
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    font-weight: 600;
+    color: #2c3e50;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.table td {
+    vertical-align: middle;
+    color: #2c3e50;
+}
+
+.btn-link {
+    color: #4e73df;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-link:hover {
+    color: #2e59d9;
+}
+
+@media (max-width: 768px) {
+    .financial-report {
+        padding: 1rem;
+    }
+    
+    .metric-card {
+        padding: 1rem;
+    }
+    
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+    
+    .metric-value {
+        font-size: 1.25rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    $('#financialDataTable').DataTable({
+        pageLength: 10,
+        order: [[0, 'desc']],
+        language: {
+            search: "Search records:",
+            lengthMenu: "Show _MENU_ entries",
+            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            infoEmpty: "No entries to show",
+            infoFiltered: "(filtered from _MAX_ total entries)"
+        },
+        responsive: true
+    });
+
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Revenue Trend Chart
+    const revenueCtx = document.getElementById('revenueTrendChart').getContext('2d');
+    const revenueChart = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: JSON.parse('{{ financial_data.trend_labels|safe }}'),
+            datasets: [{
+                label: 'Revenue',
+                data: JSON.parse('{{ financial_data.trend_data|safe }}'),
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: '#4e73df',
+                pointBorderColor: '#fff',
+                pointHoverRadius: 5,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyColor: "#858796",
+                    titleColor: '#6e707e',
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    padding: 15,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Revenue: ' + context.raw.toLocaleString('en-US', {
+                                style: 'currency',
+                                currency: '{{ financial_data.currency }}'
+                            });
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: "rgb(234, 236, 244)",
+                        zeroLineColor: "rgb(234, 236, 244)",
+                        drawBorder: false,
+                        borderDash: [2],
+                        zeroLineBorderDash: [2]
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString('en-US', {
+                                style: 'currency',
+                                currency: '{{ financial_data.currency }}',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            });
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    }
+                }
+            }
+        }
+    });
+
+    // Currency Distribution Chart
+    const currencyCtx = document.getElementById('currencyDistributionChart').getContext('2d');
+    const currencyChart = new Chart(currencyCtx, {
+        type: 'doughnut',
+        data: {
+            labels: JSON.parse('{{ financial_data.currency_labels|safe }}'),
+            datasets: [{
+                data: JSON.parse('{{ financial_data.currency_data|safe }}'),
+                backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e'],
+                hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#dda20a'],
+                hoverBorderColor: "rgba(234, 236, 244, 1)"
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyColor: "#858796",
+                    titleColor: '#6e707e',
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    padding: 15,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.raw.toLocaleString('en-US', {
+                                style: 'currency',
+                                currency: '{{ financial_data.currency }}'
+                            });
+                        }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+
+    // Vessel Type Chart
+    const vesselCtx = document.getElementById('vesselTypeChart').getContext('2d');
+    const vesselChart = new Chart(vesselCtx, {
+        type: 'bar',
+        data: {
+            labels: JSON.parse('{{ financial_data.vessel_labels|safe }}'),
+            datasets: [{
+                label: 'Revenue',
+                data: JSON.parse('{{ financial_data.vessel_data|safe }}'),
+                backgroundColor: '#4e73df',
+                borderColor: '#4e73df',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: "rgb(255,255,255)",
+                    bodyColor: "#858796",
+                    titleColor: '#6e707e',
+                    borderColor: '#dddfeb',
+                    borderWidth: 1,
+                    padding: 15,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Revenue: ' + context.raw.toLocaleString('en-US', {
+                                style: 'currency',
+                                currency: '{{ financial_data.currency }}'
+                            });
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: "rgb(234, 236, 244)",
+                        zeroLineColor: "rgb(234, 236, 244)",
+                        drawBorder: false,
+                        borderDash: [2],
+                        zeroLineBorderDash: [2]
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString('en-US', {
+                                style: 'currency',
+                                currency: '{{ financial_data.currency }}',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            });
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    }
+                }
+            }
+        }
+    });
+});
+
+function updateChart(period) {
+    console.log('Updating chart for period:', period);
+    // Add your chart update logic here
+}
+
+function exportReport() {
+    console.log('Exporting report...');
+    // Add export logic here
+}
+
+function printReport() {
+    console.log('Printing report...');
+    // Add print logic here
+}
+
+function exportTable() {
+    console.log('Exporting table...');
+    // Add table export logic here
+}
+
+function printTable() {
+    console.log('Printing table...');
+    // Add table print logic here
+}
+
+function viewPeriodDetails(periodId) {
+    console.log('Viewing details for period:', periodId);
+    // Add period details view logic here
+}
+</script> 

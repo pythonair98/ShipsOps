@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.urls import reverse
 
 
 # =============================================================================
@@ -76,6 +77,25 @@ class Contract(models.Model):
         updated_at: Timestamp for the last update.
         created_by: User who created the contract.
         updated_by: User who last modified the contract.
+        status: Current state/status of the contract (e.g., CONTRACT, TO_FIN, BILLED).
+        approval_date: Date when the contract was approved.
+        approved_by: User who approved the contract.
+        completion_date: Date when the contract was completed.
+        actual_load_date: Date when the cargo was loaded.
+        actual_discharge_date: Date when the cargo was discharged.
+        performance_rating: Rating of the contract's performance.
+        version: Version number of the contract.
+        is_amended: Whether the contract is amended.
+        parent_contract: Parent contract for amendments.
+        amendment_reason: Reason for amending the contract.
+        contract_number: Unique contract number.
+        contract_type: Type of the contract.
+        category: Category of the contract.
+        tags: Tags associated with the contract.
+        next_review_date: Date when the contract is next due for review.
+        reminder_days: Days before contract end to send reminder.
+        risk_level: Risk level of the contract.
+        contingency_plan: Contingency plan for the contract.
     """
     charter_party_dated = models.DateTimeField(default=timezone.now)
     charterer = models.CharField(max_length=150, null=True, blank=True)
@@ -104,6 +124,37 @@ class Contract(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='created_contracts')
     updated_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='updated_contracts')
+    status = models.CharField(max_length=30, choices=[
+        ('draft', 'Draft'),
+        ('pending_approval', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('disputed', 'Disputed')
+    ], default='draft')
+    approval_date = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, related_name='approved_contracts')
+    completion_date = models.DateTimeField(null=True, blank=True)
+    actual_load_date = models.DateTimeField(null=True, blank=True)
+    actual_discharge_date = models.DateTimeField(null=True, blank=True)
+    performance_rating = models.IntegerField(null=True, blank=True)
+    version = models.IntegerField(default=1)
+    is_amended = models.BooleanField(default=False)
+    parent_contract = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='amendments')
+    amendment_reason = models.TextField(null=True, blank=True)
+    contract_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    contract_type = models.CharField(max_length=50, null=True, blank=True)
+    category = models.CharField(max_length=50, null=True, blank=True)
+    tags = models.JSONField(null=True, blank=True)
+    next_review_date = models.DateTimeField(null=True, blank=True)
+    reminder_days = models.IntegerField(default=7, help_text="Days before contract end to send reminder")
+    risk_level = models.CharField(max_length=20, choices=[
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High')
+    ], default='medium')
+    contingency_plan = models.TextField(null=True, blank=True)
 
     @property
     def invoice(self):
@@ -324,6 +375,7 @@ class VesselMaintenance(models.Model):
     
     class Meta:
         ordering = ['-scheduled_date']
+
 class UserAction(models.Model):
     ACTION_TYPES = [
         ('view', 'View'),
@@ -355,4 +407,66 @@ class UserAction(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.action_type} - {self.model_name} - {self.timestamp}"
+
+class Notification(models.Model):
+    """
+    Model to store user notifications.
+    
+    Fields:
+        user: The user to whom the notification is directed.
+        title: Short title of the notification.
+        message: Detailed notification message.
+        notification_type: Type of notification (contract, invoice, system, etc.).
+        related_object_type: Type of related object (contract, invoice, etc.).
+        related_object_id: ID of the related object.
+        is_read: Whether the notification has been read.
+        is_email_sent: Whether an email has been sent for this notification.
+        created_at: When the notification was created.
+    """
+    NOTIFICATION_TYPES = [
+        ('contract', 'Contract'),
+        ('invoice', 'Invoice'),
+        ('vessel', 'Vessel'),
+        ('maintenance', 'Maintenance'),
+        ('document', 'Document'),
+        ('deadline', 'Deadline'),
+        ('system', 'System'),
+        ('alert', 'Alert'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    related_object_type = models.CharField(max_length=50, null=True, blank=True)
+    related_object_id = models.CharField(max_length=50, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    is_email_sent = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'is_read']),
+            models.Index(fields=['notification_type']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.username}"
+    
+    def mark_as_read(self):
+        """Mark notification as read"""
+        self.is_read = True
+        self.save(update_fields=['is_read'])
+    
+    def get_absolute_url(self):
+        """Return URL to the related object if applicable"""
+        if self.related_object_type == 'contract' and self.related_object_id:
+            return reverse('contract_detail', args=[self.related_object_id])
+        elif self.related_object_type == 'invoice' and self.related_object_id:
+            return reverse('invoice_detail', args=[self.related_object_id])
+        elif self.related_object_type == 'vessel' and self.related_object_id:
+            return reverse('vessel_detail', args=[self.related_object_id])
+        return "#"
 

@@ -29,6 +29,14 @@ from .views import (
     maintenance_report_view,
     invoice_report_view,
     landing_page,
+    # Notification views
+    notifications_list,
+    notification_detail,
+    mark_notification_read,
+    mark_all_notifications_read,
+    notification_settings,
+    check_notifications,
+    run_notification_checks,
 )
 
 # URL patterns for the ShipOps application
@@ -75,4 +83,13 @@ urlpatterns = [
     path('vessel/<int:vessel_id>/maintenance/new/', maintenance_create, name='maintenance_create'),
     path('maintenance/<int:maintenance_id>/edit/', maintenance_edit, name='maintenance_edit'),
     path('maintenance/<int:maintenance_id>/delete/', maintenance_delete, name='maintenance_delete'),
+    
+    # Notification URLs
+    path('notifications/', notifications_list, name='notifications_list'),
+    path('notifications/<int:notification_id>/', notification_detail, name='notification_detail'),
+    path('notifications/<int:notification_id>/read/', mark_notification_read, name='mark_notification_read'),
+    path('notifications/mark-all-read/', mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('notifications/settings/', notification_settings, name='notification_settings'),
+    path('notifications/check/', check_notifications, name='check_notifications'),
+    path('notifications/run-checks/', run_notification_checks, name='run_notification_checks'),
 ]

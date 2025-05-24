@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Contract & Invoice Analytics{% endblock title %}
 
@@ -9,21 +10,122 @@
     .metric-cards {
         display: flex;
         flex-wrap: wrap;
-        gap: 20px;
+        gap: 25px;
         margin-bottom: 30px;
     }
     .metric-card {
         flex: 1;
-        min-width: 200px;
-        background-color: #f5f5f5;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        min-width: 220px;
+        background-color: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, #4CAF50, #2196F3);
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .metric-card h3 {
+        color: #666;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .metric-card h3 i {
+        color: #2196F3;
+        font-size: 1.1rem;
     }
     .card-value {
-        font-size: 28px;
-        font-weight: bold;
+        font-size: 2rem;
+        font-weight: 700;
         margin: 10px 0;
+        color: #2c3e50;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .card-value .currency {
+        font-size: 1.2rem;
+        color: #666;
+    }
+    .card-value .percentage {
+        font-size: 1.1rem;
+        color: #28a745;
+        margin-left: 8px;
+        background-color: rgba(40, 167, 69, 0.1);
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+    .progress-container {
+        margin-top: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        height: 24px;
+        overflow: hidden;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(45deg, #28a745, #20c997);
+        text-align: center;
+        color: white;
+        line-height: 24px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: width 0.6s ease;
+    }
+    .metric-description {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .metric-description i {
+        font-size: 0.9rem;
+        color: #2196F3;
+    }
+    .metric-trend {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.85rem;
+        margin-top: 5px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        background-color: rgba(33, 150, 243, 0.1);
+    }
+    .trend-up {
+        color: #28a745;
+    }
+    .trend-down {
+        color: #dc3545;
+    }
+    .metric-card-footer {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(0,0,0,0.05);
+        font-size: 0.8rem;
+        color: #666;
     }
     .chart-container {
         background-color: white;
@@ -31,10 +133,23 @@
         padding: 20px;
         margin-bottom: 30px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: auto;
+        min-height: 350px;
+        display: flex;
+        flex-direction: column;
+    }
+    .chart-container h2 {
+        margin-bottom: 20px;
+        font-size: 1.2rem;
+    }
+    .chart-container canvas {
+        flex: 1;
+        max-height: 300px;
+        width: 100% !important;
     }
     .chart-row {
         display: flex;
-        gap: 20px;
+        gap: 30px;
         margin-bottom: 30px;
     }
     .chart-col {
@@ -56,29 +171,46 @@
     .data-table tr:nth-child(even) {
         background-color: #f9f9f9;
     }
-    .progress-container {
-        margin-top: 10px;
-        background-color: #e9ecef;
-        border-radius: 4px;
-        height: 20px;
-        overflow: hidden;
-    }
-    .progress-bar {
-        height: 100%;
-        background-color: #007bff;
-        text-align: center;
-        color: white;
-        line-height: 20px;
-        font-size: 12px;
-    }
     
     /* Responsive adjustments */
-    @media (max-width: 768px) {
+    @media (max-width: 1200px) {
+        .chart-container {
+            min-height: 300px;
+        }
+        .chart-container canvas {
+            max-height: 250px;
+        }
+    }
+    @media (max-width: 992px) {
+        .chart-container {
+            min-height: 280px;
+        }
+        .chart-container canvas {
+            max-height: 220px;
+        }
         .chart-row {
             flex-direction: column;
+            gap: 20px;
         }
         .chart-col {
             width: 100%;
+        }
+    }
+    @media (max-width: 768px) {
+        .chart-container {
+            min-height: 250px;
+        }
+        .chart-container canvas {
+            max-height: 200px;
+        }
+        .metric-cards {
+            gap: 15px;
+        }
+        .metric-card {
+            min-width: 100%;
+        }
+        .card-value {
+            font-size: 1.75rem;
         }
     }
 </style>
@@ -96,20 +228,54 @@
     <!-- Key Metrics -->
     <div class="metric-cards">
         <div class="metric-card">
-            <h3>Total Contracts</h3>
+            <h3><i class="fas fa-file-contract"></i> Total Contracts</h3>
             <div class="card-value">{{ total_contracts }}</div>
+            <div class="metric-description">
+                <i class="fas fa-info-circle"></i>
+                Active and completed contracts
+            </div>
+            <div class="metric-card-footer">
+                Last updated: {{ now|date:"M d, Y" }}
+            </div>
         </div>
         <div class="metric-card">
-            <h3>Total Invoices</h3>
+            <h3><i class="fas fa-file-invoice-dollar"></i> Total Invoices</h3>
             <div class="card-value">{{ total_invoices }}</div>
+            <div class="metric-description">
+                <i class="fas fa-info-circle"></i>
+                Generated invoices
+            </div>
+            <div class="metric-card-footer">
+                Last updated: {{ now|date:"M d, Y" }}
+            </div>
         </div>
         <div class="metric-card">
-            <h3>Total Invoiced (USD)</h3>
-            <div class="card-value">${{ total_invoiced_usd|floatformat:2 }}</div>
+            <h3><i class="fas fa-dollar-sign"></i> Total Invoiced (USD)</h3>
+            <div class="card-value">
+                <span class="currency">$</span>
+                {{ total_invoiced_usd|floatformat:2|intcomma }}
+            </div>
+            <div class="metric-description">
+                <i class="fas fa-info-circle"></i>
+                Total value in USD
+            </div>
+            <div class="metric-card-footer">
+                Last updated: {{ now|date:"M d, Y" }}
+            </div>
         </div>
         <div class="metric-card">
-            <h3>Total Invoiced (AED)</h3>
-            <div class="card-value">AED {{ total_invoiced_aed|floatformat:2 }}</div>
+            <h3><i class="fas fa-coins"></i> Total Invoiced (AED)</h3>
+            <div class="card-value">
+                <span class="currency">AED</span>
+                {{ total_invoiced_aed|floatformat:2|intcomma }}
+            </div>
+            <div class="metric-description">
+                <i class="fas fa-info-circle"></i>
+                Total value in AED
+            </div>
+            <div class="metric-card-footer">
+                Last updated: {{ now|date:"M d, Y" }}
+            </div>
         </div>
     </div>
 
@@ -118,19 +284,46 @@
         <h2>Contract Invoicing Progress</h2>
         <div class="metric-cards">
             <div class="metric-card">
-                <h3>Contracts with Invoices</h3>
-                <div class="card-value">{{ contracts_with_invoice }} ({{ invoice_percentage }}%)</div>
+                <h3><i class="fas fa-check-circle"></i> Contracts with Invoices</h3>
+                <div class="card-value">
+                    {{ contracts_with_invoice }}
+                    <span class="percentage">({{ invoice_percentage }}%)</span>
+                </div>
                 <div class="progress-container">
                     <div class="progress-bar" style="width: {{ invoice_percentage }}%;">{{ invoice_percentage }}%</div>
                 </div>
+                <div class="metric-description">
+                    <i class="fas fa-info-circle"></i>
+                    Contracts that have been invoiced
+                </div>
+                <div class="metric-card-footer">
+                    Last updated: {{ now|date:"M d, Y" }}
+                </div>
             </div>
             <div class="metric-card">
-                <h3>Contracts without Invoices</h3>
+                <h3><i class="fas fa-clock"></i> Contracts without Invoices</h3>
                 <div class="card-value">{{ contracts_without_invoice }}</div>
+                <div class="metric-description">
+                    <i class="fas fa-info-circle"></i>
+                    Pending invoicing
+                </div>
+                <div class="metric-card-footer">
+                    Last updated: {{ now|date:"M d, Y" }}
+                </div>
             </div>
             <div class="metric-card">
-                <h3>Average Invoice Value</h3>
-                <div class="card-value">${{ avg_invoice_usd|floatformat:2 }}</div>
+                <h3><i class="fas fa-chart-line"></i> Average Invoice Value</h3>
+                <div class="card-value">
+                    <span class="currency">$</span>
+                    {{ avg_invoice_usd|floatformat:2|intcomma }}
+                </div>
+                <div class="metric-description">
+                    <i class="fas fa-info-circle"></i>
+                    Average value per invoice
+                </div>
+                <div class="metric-card-footer">
+                    Last updated: {{ now|date:"M d, Y" }}
+                </div>
             </div>
         </div>
     </div>
@@ -141,14 +334,14 @@
         <div class="chart-col">
             <div class="chart-container">
                 <h2>Contract Status Distribution</h2>
-                <canvas id="statusChart" height="300"></canvas>
+                <canvas id="statusChart"></canvas>
             </div>
         </div>
         <!-- Invoice Status Distribution -->
         <div class="chart-col">
             <div class="chart-container">
                 <h2>Invoice Status Distribution</h2>
-                <canvas id="invoiceStatusChart" height="300"></canvas>
+                <canvas id="invoiceStatusChart"></canvas>
             </div>
         </div>
     </div>
@@ -156,7 +349,7 @@
     <!-- Monthly Data Chart -->
     <div class="chart-container">
         <h2>Monthly Activity</h2>
-        <canvas id="monthlyChart" height="300"></canvas>
+        <canvas id="monthlyChart"></canvas>
     </div>
     
     <!-- Charts Section Row 2 -->
@@ -165,14 +358,14 @@
         <div class="chart-col">
             <div class="chart-container">
                 <h2>Contracts by Vessel</h2>
-                <canvas id="vesselChart" height="300"></canvas>
+                <canvas id="vesselChart"></canvas>
             </div>
         </div>
         <!-- Monthly Invoice Revenue -->
         <div class="chart-col">
             <div class="chart-container">
                 <h2>Monthly Invoice Revenue (USD)</h2>
-                <canvas id="revenueChart" height="300"></canvas>
+                <canvas id="revenueChart"></canvas>
             </div>
         </div>
     </div>

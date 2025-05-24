@@ -143,10 +143,43 @@
                   <div class="col-md-6">
                     <div class="form-floating mb-3">
                       {{ form.state }}
-                      <label for="{{ form.state.id_for_label }}">Status</label>
+                      <label for="{{ form.state.id_for_label }}">State</label>
                       {% if form.state.errors %}
                         <div class="invalid-feedback d-block">
                           {{ form.state.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.status }}
+                      <label for="{{ form.status.id_for_label }}">Status</label>
+                      {% if form.status.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.status.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.contract_number }}
+                      <label for="{{ form.contract_number.id_for_label }}">Contract Number</label>
+                      {% if form.contract_number.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.contract_number.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.contract_type }}
+                      <label for="{{ form.contract_type.id_for_label }}">Contract Type</label>
+                      {% if form.contract_type.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.contract_type.errors }}
                         </div>
                       {% endif %}
                     </div>
@@ -157,6 +190,61 @@
               <!-- Section 3: Additional Information -->
               <div class="section" id="section3">
                 <div class="row g-4">
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.category }}
+                      <label for="{{ form.category.id_for_label }}">Category</label>
+                      {% if form.category.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.category.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.risk_level }}
+                      <label for="{{ form.risk_level.id_for_label }}">Risk Level</label>
+                      {% if form.risk_level.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.risk_level.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.next_review_date }}
+                      <label for="{{ form.next_review_date.id_for_label }}">Next Review Date</label>
+                      {% if form.next_review_date.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.next_review_date.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.reminder_days }}
+                      <label for="{{ form.reminder_days.id_for_label }}">Reminder Days</label>
+                      {% if form.reminder_days.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.reminder_days.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      {{ form.tags }}
+                      <label for="{{ form.tags.id_for_label }}">Tags</label>
+                      {% if form.tags.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ form.tags.errors }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
                   <div class="col-md-6">
                     <div class="form-floating mb-3">
                       {{ form.charter_party_form }}
@@ -388,6 +476,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize navigation
   updateNavigation();
+  
+  // Enhance select multiple (tags field)
+  const tagsField = document.querySelector('select[name="tags"]');
+  if (tagsField) {
+    // Add instruction text above the tags field
+    const instructionText = document.createElement('small');
+    instructionText.className = 'text-muted d-block mb-1';
+    instructionText.innerHTML = 'Hold Ctrl (or Cmd on Mac) to select multiple tags';
+    tagsField.parentNode.insertBefore(instructionText, tagsField);
+    
+    // Add styling to selected options
+    tagsField.addEventListener('change', function() {
+      Array.from(this.options).forEach(option => {
+        if (option.selected) {
+          option.classList.add('bg-primary', 'text-white');
+        } else {
+          option.classList.remove('bg-primary', 'text-white');
+        }
+      });
+    });
+    
+    // Trigger change event to apply styling to pre-selected options
+    tagsField.dispatchEvent(new Event('change'));
+  }
 });
 </script>
 
@@ -455,6 +567,23 @@ document.addEventListener('DOMContentLoaded', function() {
 .invalid-feedback {
   font-size: 0.875rem;
   margin-top: 0.25rem;
+}
+
+/* Custom styles for select multiple (tags field) */
+select[multiple] {
+  height: auto !important;
+  min-height: 10rem;
+}
+
+select[multiple] option {
+  padding: 0.5rem;
+  margin-bottom: 2px;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+}
+
+select[multiple] option:hover {
+  background-color: #e9ecef;
 }
 
 @media (max-width: 768px) {

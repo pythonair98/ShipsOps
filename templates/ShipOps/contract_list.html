@@ -56,20 +56,23 @@
             <table class="table table-hover align-middle mb-0">
               <thead class="table-light">
                 <tr>
-                  <th scope="col" class="text-nowrap" style="width: 12%">Charter Party Dated</th>
-                  <th scope="col" class="text-nowrap" style="width: 15%">Charterer</th>
-                  <th scope="col" class="text-nowrap" style="width: 12%">Vessel</th>
-                  <th scope="col" class="text-nowrap" style="width: 10%">State</th>
-                  <th scope="col" class="text-nowrap" style="width: 12%">Laycan</th>
-                  <th scope="col" class="text-nowrap" style="width: 15%">Contract Value (USD)</th>
-                  <th scope="col" class="text-nowrap" style="width: 15%">Contract Value (AED)</th>
-                  <th scope="col" class="text-nowrap" style="width: 10%">Created</th>
-                  <th scope="col" class="text-nowrap" style="width: 10%">Actions</th>
+                  <th scope="col" class="text-nowrap" style="width: 8%">Contract Number</th>
+                  <th scope="col" class="text-nowrap" style="width: 10%">Charter Party Dated</th>
+                  <th scope="col" class="text-nowrap" style="width: 12%">Charterer</th>
+                  <th scope="col" class="text-nowrap" style="width: 10%">Vessel</th>
+                  <th scope="col" class="text-nowrap" style="width: 8%">State</th>
+                  <th scope="col" class="text-nowrap" style="width: 8%">Status</th>
+                  <th scope="col" class="text-nowrap" style="width: 10%">Contract Type</th>
+                  <th scope="col" class="text-nowrap" style="width: 8%">Risk Level</th>
+                  <th scope="col" class="text-nowrap" style="width: 10%">Contract Value (USD)</th>
+                  <th scope="col" class="text-nowrap" style="width: 8%">Created</th>
+                  <th scope="col" class="text-nowrap" style="width: 8%">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {% for contract in contracts %}
                 <tr>
+                  <td>{{ contract.contract_number|default:"--" }}</td>
                   <td>{{ contract.charter_party_dated|date:"M d, Y" }}</td>
                   <td>{{ contract.charterer }}</td>
                   <td>{{ contract.vessel }}</td>
@@ -84,9 +87,38 @@
                     <span class="badge bg-success">Completed</span>
                     {% endif %}
                   </td>
-                  <td>{{ contract.laycan }}</td>
-                  <td>${{ contract.contract_value_usd|floatformat:2 }}</td>
-                  <td>AED {{ contract.contract_value_aed|floatformat:2 }}</td>
+                  <td>
+                    {% if contract.status == "draft" %}
+                    <span class="badge bg-secondary">Draft</span>
+                    {% elif contract.status == "pending_approval" %}
+                    <span class="badge bg-warning text-dark">Pending Approval</span>
+                    {% elif contract.status == "approved" %}
+                    <span class="badge bg-success">Approved</span>
+                    {% elif contract.status == "active" %}
+                    <span class="badge bg-primary">Active</span>
+                    {% elif contract.status == "completed" %}
+                    <span class="badge bg-info">Completed</span>
+                    {% elif contract.status == "cancelled" %}
+                    <span class="badge bg-danger">Cancelled</span>
+                    {% elif contract.status == "disputed" %}
+                    <span class="badge bg-dark">Disputed</span>
+                    {% else %}
+                    <span class="badge bg-secondary">--</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ contract.contract_type|default:"--" }}</td>
+                  <td>
+                    {% if contract.risk_level == "low" %}
+                    <span class="badge bg-success">Low</span>
+                    {% elif contract.risk_level == "medium" %}
+                    <span class="badge bg-warning text-dark">Medium</span>
+                    {% elif contract.risk_level == "high" %}
+                    <span class="badge bg-danger">High</span>
+                    {% else %}
+                    <span class="badge bg-secondary">--</span>
+                    {% endif %}
+                  </td>
+                  <td>${{ contract.contract_value|floatformat:2 }}</td>
                   <td>{{ contract.created_at|date:"M d, Y" }}</td>
                   <td style="width: 10%">
                     <div class="btn-group" role="group">
@@ -136,7 +168,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                  <td colspan="9" class="text-center py-4">
+                  <td colspan="11" class="text-center py-4">
                     <div class="alert alert-info mb-0">
                       <i class="fas fa-info-circle me-2"></i>No contracts found
                     </div>

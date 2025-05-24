@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ notification.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Back button -->
+      <div class="mb-4">
+        <a href="{% url 'notifications_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-2"></i>Back to Notifications
+        </a>
+      </div>
+      
+      <!-- Notification Card -->
+      <div class="card shadow-lg border-0 rounded-lg mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h4 class="mb-0">
+            {% if notification.notification_type == 'contract' %}
+              <i class="fas fa-file-contract me-2 text-primary"></i>
+            {% elif notification.notification_type == 'invoice' %}
+              <i class="fas fa-file-invoice me-2 text-success"></i>
+            {% elif notification.notification_type == 'vessel' %}
+              <i class="fas fa-ship me-2 text-info"></i>
+            {% elif notification.notification_type == 'maintenance' %}
+              <i class="fas fa-tools me-2 text-warning"></i>
+            {% elif notification.notification_type == 'document' %}
+              <i class="fas fa-file-alt me-2 text-secondary"></i>
+            {% elif notification.notification_type == 'deadline' %}
+              <i class="fas fa-calendar-alt me-2 text-danger"></i>
+            {% elif notification.notification_type == 'system' %}
+              <i class="fas fa-cogs me-2 text-dark"></i>
+            {% elif notification.notification_type == 'alert' %}
+              <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+            {% else %}
+              <i class="fas fa-bell me-2"></i>
+            {% endif %}
+            {{ notification.title }}
+          </h4>
+          <span class="badge bg-secondary">{{ notification.notification_type|title }}</span>
+        </div>
+        <div class="card-body">
+          <div class="mb-4">
+            <p class="lead">{{ notification.message }}</p>
+            <div class="text-muted small">
+              <p class="mb-0">
+                <i class="fas fa-clock me-1"></i> {{ notification.created_at|date:"F d, Y H:i" }}
+              </p>
+              <p class="mb-0">
+                <i class="fas fa-check-circle me-1"></i> Status: 
+                {% if notification.is_read %}
+                  <span class="text-success">Read</span>
+                {% else %}
+                  <span class="text-warning">Unread</span>
+                {% endif %}
+              </p>
+              {% if notification.is_email_sent %}
+                <p class="mb-0">
+                  <i class="fas fa-envelope me-1"></i> Email notification sent
+                </p>
+              {% endif %}
+            </div>
+          </div>
+          
+          {% if related_object %}
+            <div class="border-top pt-3 mt-3">
+              <h5>Related Information</h5>
+              {% if notification.related_object_type == 'contract' %}
+                <div class="card border">
+                  <div class="card-body">
+                    <h5 class="card-title">Contract #{{ related_object.id }}</h5>
+                    <p><strong>Vessel:</strong> {{ related_object.vessel }}</p>
+                    <p><strong>Charterer:</strong> {{ related_object.charterer }}</p>
+                    <p><strong>Contract End:</strong> {{ related_object.contract_end|date:"F d, Y" }}</p>
+                    <a href="{% url 'contract_detail' related_object.id %}" class="btn btn-primary">
+                      <i class="fas fa-eye me-1"></i> View Contract
+                    </a>
+                  </div>
+                </div>
+              {% elif notification.related_object_type == 'invoice' %}
+                <div class="card border">
+                  <div class="card-body">
+                    <h5 class="card-title">Invoice #{{ related_object.id }}</h5>
+                    <p><strong>Amount:</strong> ${{ related_object.price_usd }}</p>
+                    <p><strong>Status:</strong> 
+                      {% if related_object.status == 0 %}
+                        <span class="badge bg-warning">Pending</span>
+                      {% elif related_object.status == 1 %}
+                        <span class="badge bg-success">Paid</span>
+                      {% elif related_object.status == 2 %}
+                        <span class="badge bg-danger">Overdue</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Unknown</span>
+                      {% endif %}
+                    </p>
+                    <a href="{% url 'invoice_detail' related_object.id %}" class="btn btn-primary">
+                      <i class="fas fa-eye me-1"></i> View Invoice
+                    </a>
+                  </div>
+                </div>
+              {% elif notification.related_object_type == 'vessel' %}
+                <div class="card border">
+                  <div class="card-body">
+                    <h5 class="card-title">Vessel: {{ related_object.name }}</h5>
+                    <p><strong>IMO Number:</strong> {{ related_object.imo_number }}</p>
+                    <p><strong>Status:</strong> {{ related_object.status|title }}</p>
+                    <a href="{% url 'vessel_detail' related_object.id %}" class="btn btn-primary">
+                      <i class="fas fa-eye me-1"></i> View Vessel
+                    </a>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+          
+          <div class="text-end mt-4">
+            <a href="{{ notification.get_absolute_url }}" class="btn btn-primary">
+              {% if notification.related_object_type %}
+                <i class="fas fa-external-link-alt me-1"></i> View {{ notification.related_object_type|title }}
+              {% else %}
+                <i class="fas fa-external-link-alt me-1"></i> View Details
+              {% endif %}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

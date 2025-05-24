@@ -8,6 +8,7 @@ from django.db.models import Q, Sum, Avg, Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 import json
+from django.http import JsonResponse
 from .forms import ContractForm, InvoiceForm
 from .models import (
     Contract,
@@ -17,6 +18,7 @@ from .models import (
     VesselMaintenance,
     UserAction,
     User,
+    Notification,
 )
 
 
@@ -104,6 +106,15 @@ def contract_new(request):
             contract = form.save(commit=False)
             contract.created_by = request.user
             contract.updated_by = request.user
+            
+            # Convert state from string to integer if needed
+            if isinstance(contract.state, str) and contract.state.isdigit():
+                contract.state = int(contract.state)
+            
+            # Handle tags as a JSON field (convert from list to JSON)
+            if form.cleaned_data.get('tags'):
+                contract.tags = list(form.cleaned_data['tags'])
+                
             contract.save()
             messages.success(request, 'Contract created successfully')
             return redirect("contract_list")
@@ -178,13 +189,27 @@ def contract_edit(request, contract_id):
         if form.is_valid():
             contract = form.save(commit=False)
             contract.updated_by = request.user
+            
+            # Convert state from string to integer if needed
+            if isinstance(contract.state, str) and contract.state.isdigit():
+                contract.state = int(contract.state)
+                
+            # Handle tags as a JSON field (convert from list to JSON)
+            if form.cleaned_data.get('tags'):
+                contract.tags = list(form.cleaned_data['tags'])
+                
             contract.save()
             messages.success(request, 'Contract updated successfully')
             return redirect("contract_list")
         else:
             messages.error(request, f'Error updating contract: {form.errors}')
     else:
-        form = ContractForm(instance=contract)
+        # Set initial values for MultipleChoiceField
+        initial_data = {}
+        if contract.tags:
+            initial_data['tags'] = contract.tags
+        
+        form = ContractForm(instance=contract, initial=initial_data)
     
     context = {
         'form': form,
@@ -1145,160 +1170,107 @@ def vessel_performance_view(request):
     total_vessels = vessels.count()
     
     # Get status counts
-    operational_vessels = vessels.filter(status='operational').count()
-    maintenance_vessels = vessels.filter(status='maintenance').count()
-    repair_vessels = vessels.filter(status='repair').count()
-    docked_vessels = vessels.filter(status='docked').count()
-    unavailable_vessels = vessels.filter(status='unavailable').count()
+    operational_vessels_count = vessels.filter(status='operational').count()
+    maintenance_vessels_count = vessels.filter(status='maintenance').count()
+    out_of_service_vessels_count = vessels.filter(status__in=['repair', 'docked', 'unavailable']).count()
     
-    # Calculate fleet availability percentage
-    fleet_availability = 0
-    if total_vessels > 0:
-        fleet_availability = (operational_vessels / total_vessels) * 100
+    # Calculate percentages
+    total = total_vessels or 1  # Avoid division by zero
+    operational_percentage = (operational_vessels_count / total) * 100
+    maintenance_percentage = (maintenance_vessels_count / total) * 100
+    out_of_service_percentage = (out_of_service_vessels_count / total) * 100
     
-    # Get vessel types distribution
-    vessel_types = vessels.values('vessel_type').annotate(count=Count('id')).order_by('-count')
+    # Get contract data
+    contracts = Contract.objects.all()
+    total_contracts = contracts.count()
+    active_contracts = contracts.filter(state=0).count()  # Assuming state=0 is active/pending
     
-    # Get maintenance data
+    # Get upcoming maintenance
     today = timezone.now().date()
-    maintenance_records = VesselMaintenance.objects.all()
-    total_maintenance_count = maintenance_records.count()
-    
-    # Maintenance by status
-    scheduled_maintenance = maintenance_records.filter(status='scheduled').count()
-    in_progress_maintenance = maintenance_records.filter(status='in_progress').count()
-    completed_maintenance = maintenance_records.filter(status='completed').count()
-    delayed_maintenance = maintenance_records.filter(status='delayed').count()
-    
-    # Get upcoming maintenance in next 30 days
     thirty_days_later = today + timedelta(days=30)
-    upcoming_maintenance = maintenance_records.filter(
+    upcoming_maintenance = VesselMaintenance.objects.filter(
         scheduled_date__range=[today, thirty_days_later]
     ).order_by('scheduled_date')
+    upcoming_maintenance_count = upcoming_maintenance.count()
     
-    # Calculate maintenance costs
-    total_maintenance_cost = maintenance_records.aggregate(
-        total=Sum('cost')
-    )['total'] or 0
+    # Get vessel types and contracts by type
+    vessel_types = vessels.values_list('vessel_type', flat=True).distinct()
+    contracts_by_type = []
     
-    avg_maintenance_cost = 0
-    if total_maintenance_count > 0:
-        avg_maintenance_cost = total_maintenance_cost / total_maintenance_count
+    # Count contracts for each vessel type
+    for vessel_type in vessel_types:
+        # Get vessel names of this type
+        vessels_of_type = vessels.filter(vessel_type=vessel_type).values_list('name', flat=True)
+        # Count contracts for these vessels
+        count = contracts.filter(vessel__in=vessels_of_type).count()
+        contracts_by_type.append(count)
     
-    # Get maintenance costs by vessel
-    vessel_maintenance_costs = VesselMaintenance.objects.values(
-        'vessel__name'
-    ).annotate(
-        total_cost=Sum('cost'),
-        maintenance_count=Count('id')
-    ).order_by('-total_cost')[:10]
-    
-    # Get maintenance costs by month
+    # Get maintenance data for the last 12 months
     last_12_months = timezone.now() - timedelta(days=365)
-    monthly_maintenance = VesselMaintenance.objects.filter(
+    maintenance_data = VesselMaintenance.objects.filter(
         scheduled_date__gte=last_12_months
-    ).values('scheduled_date__year', 'scheduled_date__month').annotate(
-        count=Count('id'),
-        total_cost=Sum('cost')
-    ).order_by('scheduled_date__year', 'scheduled_date__month')
+    ).values('scheduled_date__month').annotate(
+        count=Count('id')
+    ).order_by('scheduled_date__month')
     
-    # Create month labels and initialize data arrays
+    # Prepare months and maintenance data for chart
     months = []
     maintenance_counts = []
-    maintenance_costs = []
-    
-    # Create month labels (last 12 months)
     for i in range(12):
         date = timezone.now() - timedelta(days=30 * (11 - i))
-        month_name = f"{date.year}-{date.month}"
-        months.append(month_name)
-        maintenance_counts.append(0)
-        maintenance_costs.append(0)
+        months.append(date.strftime('%b %Y'))
+        count = next((item['count'] for item in maintenance_data if item['scheduled_date__month'] == date.month), 0)
+        maintenance_counts.append(count)
     
-    # Fill in actual maintenance data
-    for item in monthly_maintenance:
-        month_name = f"{item['scheduled_date__year']}-{item['scheduled_date__month']}"
-        if month_name in months:
-            idx = months.index(month_name)
-            maintenance_counts[idx] = item['count']
-            maintenance_costs[idx] = float(item['total_cost'] or 0)
+    # Get top vessels by revenue
+    top_vessels = []
+    for vessel in vessels:
+        vessel_contracts = contracts.filter(vessel=vessel.name)
+        # Convert freight values to float, handling currency prefixes
+        total_revenue = sum(
+            float(str(contract.freight).replace('USD', '').replace('AED', '').strip()) 
+            if contract.freight and str(contract.freight).strip() 
+            else 0.0 for contract in vessel_contracts
+        )
+        avg_contract_value = total_revenue / len(vessel_contracts) if vessel_contracts else 0
+        maintenance_count = vessel.maintenance_records.count()
+        
+        top_vessels.append({
+            'name': vessel.name,
+            'contract_count': vessel_contracts.count(),
+            'total_revenue': total_revenue,
+            'avg_contract_value': avg_contract_value,
+            'maintenance_count': maintenance_count,
+            'status': vessel.status
+        })
     
-    # Get vessels with expired or expiring documents
-    expiring_documents = VesselDocument.objects.filter(
-        expiry_date__range=[today, thirty_days_later]
-    ).order_by('expiry_date')
+    # Sort top vessels by total revenue
+    top_vessels.sort(key=lambda x: x['total_revenue'], reverse=True)
+    top_vessels = top_vessels[:5]  # Get top 5 vessels
     
-    # Get document compliance rate
-    total_documents = VesselDocument.objects.count()
-    expired_documents = VesselDocument.objects.filter(
-        expiry_date__lt=today
-    ).count()
-    
-    document_compliance_rate = 100
-    if total_documents > 0:
-        document_compliance_rate = ((total_documents - expired_documents) / total_documents) * 100
-    
-    # Get contract data by vessel
-    contracts_by_vessel = Contract.objects.values('vessel').annotate(
-        contract_count=Count('id')
-    ).order_by('-contract_count')[:10]
-    
-    # Convert data to JSON for charts
-    def json_default(obj):
-        if isinstance(obj, (int, float, str, bool, type(None))):
-            return obj
-        return str(obj)
-    
-    # Vessel status for pie chart
-    status_labels = ['Operational', 'Maintenance', 'Repair', 'Docked', 'Unavailable']
-    status_counts = [operational_vessels, maintenance_vessels, repair_vessels, docked_vessels, unavailable_vessels]
-    
-    # Vessel type data for charts
-    vessel_type_labels = [item['vessel_type'] for item in vessel_types]
-    vessel_type_counts = [item['count'] for item in vessel_types]
-    
-    # Maintenance status for charts
-    maintenance_status_labels = ['Scheduled', 'In Progress', 'Completed', 'Delayed']
-    maintenance_status_counts = [scheduled_maintenance, in_progress_maintenance, completed_maintenance, delayed_maintenance]
-    
-    # Vessel maintenance cost data
-    maintenance_vessel_names = [item['vessel__name'] for item in vessel_maintenance_costs]
-    maintenance_vessel_costs = [float(item['total_cost']) for item in vessel_maintenance_costs]
+    # Prepare data for charts
+    vessel_types_json = json.dumps(list(vessel_types))
+    contracts_by_type_json = json.dumps(contracts_by_type)
+    months_json = json.dumps(months)
+    maintenance_data_json = json.dumps(maintenance_counts)
     
     context = {
-        'total_vessels': total_vessels,
-        'operational_vessels': operational_vessels,
-        'maintenance_vessels': maintenance_vessels,
-        'repair_vessels': repair_vessels,
-        'docked_vessels': docked_vessels,
-        'unavailable_vessels': unavailable_vessels,
-        'fleet_availability': round(fleet_availability, 2),
-        'vessel_types': vessel_types,
-        'total_maintenance_count': total_maintenance_count,
-        'scheduled_maintenance': scheduled_maintenance,
-        'in_progress_maintenance': in_progress_maintenance,
-        'completed_maintenance': completed_maintenance,
-        'delayed_maintenance': delayed_maintenance,
+        'active_vessels_count': operational_vessels_count,
+        'total_contracts': total_contracts,
+        'active_contracts': active_contracts,
+        'upcoming_maintenance_count': upcoming_maintenance_count,
+        'operational_vessels_count': operational_vessels_count,
+        'maintenance_vessels_count': maintenance_vessels_count,
+        'out_of_service_vessels_count': out_of_service_vessels_count,
+        'operational_percentage': operational_percentage,
+        'maintenance_percentage': maintenance_percentage,
+        'out_of_service_percentage': out_of_service_percentage,
+        'vessel_types_json': vessel_types_json,
+        'contracts_by_type_json': contracts_by_type_json,
+        'months_json': months_json,
+        'maintenance_data_json': maintenance_data_json,
+        'top_vessels': top_vessels,
         'upcoming_maintenance': upcoming_maintenance,
-        'total_maintenance_cost': total_maintenance_cost,
-        'avg_maintenance_cost': round(avg_maintenance_cost, 2),
-        'vessel_maintenance_costs': vessel_maintenance_costs,
-        'expiring_documents': expiring_documents,
-        'document_compliance_rate': round(document_compliance_rate, 2),
-        'contracts_by_vessel': contracts_by_vessel,
-        
-        # JSON data for charts
-        'months_json': json.dumps(months, default=json_default),
-        'maintenance_counts_json': json.dumps(maintenance_counts, default=json_default),
-        'maintenance_costs_json': json.dumps(maintenance_costs, default=json_default),
-        'status_labels_json': json.dumps(status_labels, default=json_default),
-        'status_counts_json': json.dumps(status_counts, default=json_default),
-        'vessel_type_labels_json': json.dumps(vessel_type_labels, default=json_default),
-        'vessel_type_counts_json': json.dumps(vessel_type_counts, default=json_default),
-        'maintenance_status_labels_json': json.dumps(maintenance_status_labels, default=json_default),
-        'maintenance_status_counts_json': json.dumps(maintenance_status_counts, default=json_default),
-        'maintenance_vessel_names_json': json.dumps(maintenance_vessel_names, default=json_default),
-        'maintenance_vessel_costs_json': json.dumps(maintenance_vessel_costs, default=json_default),
     }
     
     return render(request, 'ShipOps/vessel_performance.html', context)
@@ -1435,3 +1407,148 @@ def user_analytics(request):
     }
 
     return render(request, 'ShipOps/user_analytics.html', context)
+
+
+# ======== Notification Views =========
+
+@login_required
+def notifications_list(request):
+    """View to display all notifications for the current user"""
+    # Get user's notifications
+    from .utils import get_user_notifications
+    notifications = get_user_notifications(request.user)
+    unread_count = notifications.filter(is_read=False).count()
+    
+    # Pagination
+    paginator = Paginator(notifications, 20)  # Show 20 notifications per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'notifications': page_obj,
+        'unread_count': unread_count,
+        'page_title': 'Notifications'
+    }
+    
+    return render(request, 'ShipOps/notifications_list.html', context)
+
+
+@login_required
+def notification_detail(request, notification_id):
+    """View to display a single notification and mark it as read"""
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    
+    # Mark notification as read
+    if not notification.is_read:
+        notification.mark_as_read()
+    
+    # Get related object if exists
+    related_object = None
+    if notification.related_object_type and notification.related_object_id:
+        if notification.related_object_type == 'contract':
+            try:
+                related_object = Contract.objects.get(id=notification.related_object_id)
+            except Contract.DoesNotExist:
+                pass
+        elif notification.related_object_type == 'invoice':
+            try:
+                related_object = Invoice.objects.get(id=notification.related_object_id)
+            except Invoice.DoesNotExist:
+                pass
+        elif notification.related_object_type == 'vessel':
+            try:
+                related_object = Vessel.objects.get(id=notification.related_object_id)
+            except Vessel.DoesNotExist:
+                pass
+    
+    context = {
+        'notification': notification,
+        'related_object': related_object,
+        'page_title': notification.title
+    }
+    
+    return render(request, 'ShipOps/notification_detail.html', context)
+
+
+@login_required
+def mark_notification_read(request, notification_id):
+    """View to mark a notification as read and redirect to its detail page"""
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.mark_as_read()
+    
+    # Redirect to related object if it exists
+    if notification.related_object_type and notification.related_object_id:
+        url = notification.get_absolute_url()
+        if url != "#":
+            return redirect(url)
+    
+    # Default redirect to notification detail
+    return redirect('notification_detail', notification_id=notification.id)
+
+
+@login_required
+def mark_all_notifications_read(request):
+    """View to mark all notifications as read"""
+    from .utils import mark_all_as_read
+    mark_all_as_read(request.user)
+    
+    # Redirect back to notifications list
+    messages.success(request, 'All notifications marked as read')
+    return redirect('notifications_list')
+
+
+@login_required
+def notification_settings(request):
+    """View to configure notification settings"""
+    # TODO: Implement notification settings
+    context = {
+        'page_title': 'Notification Settings'
+    }
+    
+    return render(request, 'ShipOps/notification_settings.html', context)
+
+
+@login_required
+def check_notifications(request):
+    """AJAX view to get unread notification count and recent notifications"""
+    from .utils import get_user_notifications
+    unread_notifications = get_user_notifications(request.user, unread_only=True)
+    recent_notifications = get_user_notifications(request.user, limit=5)
+    
+    # Format for JSON response
+    notifications_data = []
+    for notification in recent_notifications:
+        notifications_data.append({
+            'id': notification.id,
+            'title': notification.title,
+            'message': notification.message[:100] + '...' if len(notification.message) > 100 else notification.message,
+            'is_read': notification.is_read,
+            'created_at': notification.created_at.strftime('%b %d, %Y %H:%M'),
+            'url': notification.get_absolute_url(),
+            'type': notification.notification_type
+        })
+    
+    data = {
+        'unread_count': unread_notifications.count(),
+        'notifications': notifications_data
+    }
+    
+    return JsonResponse(data)
+
+
+@login_required
+def run_notification_checks(request):
+    """Admin view to manually run notification checks"""
+    if not request.user.is_staff:
+        messages.error(request, 'Permission denied')
+        return redirect('home')
+    
+    from .utils import check_approaching_deadlines
+    results = check_approaching_deadlines()
+    
+    msg = f"Notification check complete. Found: {results['contracts']} contracts, " \
+          f"{results['documents']} documents, {results['maintenance']} maintenance tasks, " \
+          f"and {results['invoices']} invoices with approaching deadlines."
+    messages.success(request, msg)
+    
+    return redirect('home')
