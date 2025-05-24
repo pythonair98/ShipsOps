@@ -10,9 +10,6 @@
       <h2 class="h3 mb-0 text-gray-800">Invoice Management</h2>
       <p class="text-muted mt-2">Manage and track all your invoices in one place</p>
     </div>
-    <a href="{% url 'invoice_new' %}" class="btn btn-success">
-      <i class="fas fa-plus-circle me-2"></i>New Invoice
-    </a>
   </div>
 
   <!-- Summary Cards -->
@@ -23,7 +20,8 @@
           <div class="row no-gutters align-items-center">
             <div class="col mr-2">
               <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Invoices</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ invoices.paginator.count }}</div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_invoices }}</div>
+              <div class="text-xs text-muted mt-2">Total Value: ${{ total_paid_usd|add:total_pending_usd|add:total_overdue_usd|floatformat:2 }}</div>
             </div>
             <div class="col-auto">
               <i class="fas fa-file-invoice fa-2x text-gray-300"></i>
@@ -38,11 +36,8 @@
           <div class="row no-gutters align-items-center">
             <div class="col mr-2">
               <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Paid Invoices</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">
-                {% with paid_count=invoices|filter_invoices_by_status:"paid" %}
-                  {{ paid_count|length }}
-                {% endwith %}
-              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ paid_invoices_count }}</div>
+              <div class="text-xs text-success mt-2">Total Paid: ${{ total_paid_usd|floatformat:2 }}</div>
             </div>
             <div class="col-auto">
               <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -57,11 +52,8 @@
           <div class="row no-gutters align-items-center">
             <div class="col mr-2">
               <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Invoices</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">
-                {% with pending_count=invoices|filter_invoices_by_status:"pending" %}
-                  {{ pending_count|length }}
-                {% endwith %}
-              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_invoices_count }}</div>
+              <div class="text-xs text-warning mt-2">Pending Amount: ${{ total_pending_usd|floatformat:2 }}</div>
             </div>
             <div class="col-auto">
               <i class="fas fa-clock fa-2x text-gray-300"></i>
@@ -76,11 +68,8 @@
           <div class="row no-gutters align-items-center">
             <div class="col mr-2">
               <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Overdue Invoices</div>
-              <div class="h5 mb-0 font-weight-bold text-gray-800">
-                {% with overdue_count=invoices|filter_invoices_by_status:"overdue" %}
-                  {{ overdue_count|length }}
-                {% endwith %}
-              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ overdue_invoices_count }}</div>
+              <div class="text-xs text-danger mt-2">Overdue Amount: ${{ total_overdue_usd|floatformat:2 }}</div>
             </div>
             <div class="col-auto">
               <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
@@ -93,22 +82,34 @@
 
   <!-- Invoice List Card -->
   <div class="card shadow">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-      <h6 class="m-0 fw-bold text-primary">All Invoices</h6>
-      <div class="d-flex align-items-center">
-        <span class="text-muted small me-3">
-          Showing {{ invoices.start_index }} to {{ invoices.end_index }} of {{ invoices.paginator.count }} invoices
-        </span>
-        <div class="btn-group">
-          <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="fas fa-filter me-1"></i>Filter
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="?status=all">All Invoices</a></li>
-            <li><a class="dropdown-item" href="?status=paid">Paid</a></li>
-            <li><a class="dropdown-item" href="?status=pending">Pending</a></li>
-            <li><a class="dropdown-item" href="?status=overdue">Overdue</a></li>
-          </ul>
+    <div class="card-header py-3">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <h6 class="m-0 fw-bold text-primary">All Invoices</h6>
+        </div>
+        <div class="col-md-6">
+          <form method="get" action="{% url 'invoice_list' %}" class="d-flex gap-2">
+            <div class="input-group">
+              <input type="text" class="form-control" name="search" value="{{ search_query }}"
+                     placeholder="Search by invoice ID, contract details, vessel, amount, or notes...">
+              <select name="status" class="form-select" style="max-width: 150px;">
+                <option value="">All Statuses</option>
+                {% for status_code, status_name in invoice_statuses %}
+                  <option value="{{ status_code }}" {% if current_status == status_code %}selected{% endif %}>
+                    {{ status_name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-primary" type="submit">
+                <i class="fas fa-search"></i>
+              </button>
+              {% if search_query or current_status %}
+              <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i>
+              </a>
+              {% endif %}
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -230,7 +231,7 @@
                   <a href="/export_invoice/{{ invoice.id }}/" class="btn btn-sm btn-success" data-bs-toggle="tooltip" title="Export PDF">
                     <i class="fas fa-file-export"></i>
                   </a>
-                  {% if invoice.status == 'pending' %}
+                  {% if invoice.status == 0 %}
                   <a href="#" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" title="Mark as Paid">
                     <i class="fas fa-check"></i>
                   </a>
@@ -250,66 +251,59 @@
             {% endfor %}
           </tbody>
         </table>
+        
+        <!-- Pagination -->
+        {% if invoices.paginator.num_pages > 1 %}
+        <div class="mt-4">
+          <div class="text-center mb-3">
+            <span class="text-muted">
+              Showing {{ invoices.start_index }} to {{ invoices.end_index }} of {{ invoices.paginator.count }} invoices
+            </span>
+          </div>
+          <nav aria-label="Invoice pagination">
+            <ul class="pagination justify-content-center mb-0">
+              {% if invoices.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ invoices.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                  </a>
+                </li>
+              {% endif %}
+
+              {% for num in invoices.paginator.page_range %}
+                {% if invoices.number == num %}
+                  <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > invoices.number|add:'-3' and num < invoices.number|add:'3' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if invoices.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ invoices.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ invoices.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                  </a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
-
-  <!-- Pagination -->
-  {% if invoices.has_other_pages %}
-  <nav aria-label="Page navigation" class="mt-4">
-    <ul class="pagination justify-content-center">
-      {% if invoices.has_previous %}
-      <li class="page-item">
-        <a class="page-link" href="?page=1" aria-label="First">
-          <span aria-hidden="true">&laquo;&laquo;</span>
-        </a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="?page={{ invoices.previous_page_number }}" aria-label="Previous">
-          <span aria-hidden="true">&laquo;</span>
-        </a>
-      </li>
-      {% else %}
-      <li class="page-item disabled">
-        <a class="page-link" href="#" aria-label="Previous">
-          <span aria-hidden="true">&laquo;</span>
-        </a>
-      </li>
-      {% endif %}
-      
-      {% with ''|center:invoices.paginator.num_pages as range %}
-      {% for _ in range %}
-        {% with forloop.counter as i %}
-          {% if invoices.number == i %}
-            <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
-          {% elif i > invoices.number|add:"-3" and i < invoices.number|add:"3" %}
-            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
-          {% endif %}
-        {% endwith %}
-      {% endfor %}
-      {% endwith %}
-      
-      {% if invoices.has_next %}
-      <li class="page-item">
-        <a class="page-link" href="?page={{ invoices.next_page_number }}" aria-label="Next">
-          <span aria-hidden="true">&raquo;</span>
-        </a>
-      </li>
-      <li class="page-item">
-        <a class="page-link" href="?page={{ invoices.paginator.num_pages }}" aria-label="Last">
-          <span aria-hidden="true">&raquo;&raquo;</span>
-        </a>
-      </li>
-      {% else %}
-      <li class="page-item disabled">
-        <a class="page-link" href="#" aria-label="Next">
-          <span aria-hidden="true">&raquo;</span>
-        </a>
-      </li>
-      {% endif %}
-    </ul>
-  </nav>
-  {% endif %}
 </div>
 
 <!-- Initialize tooltips -->

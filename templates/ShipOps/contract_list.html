@@ -33,7 +33,7 @@
             <div class="row align-items-end">
               <div class="col-md-3">
                 <label for="state" class="form-label">Filter by State:</label>
-                <select name="state" id="state" class="form-select" onchange="this.form.submit()">
+                <select name="state" id="state" class="form-select">
                   <option value="">All States</option>
                   {% for state_code, state_name in contract_states %}
                     <option value="{{ state_code }}" {% if current_state == state_code|stringformat:"s" %}selected{% endif %}>
@@ -42,10 +42,20 @@
                   {% endfor %}
                 </select>
               </div>
+              <div class="col-md-4">
+                <label for="search" class="form-label">Search Contracts:</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="search" name="search" value="{{ search_query }}" 
+                         placeholder="Search by contract number, charterer, vessel, cargo, ports, owner...">
+                  <button class="btn btn-primary" type="submit">
+                    <i class="fas fa-search"></i>
+                  </button>
+                </div>
+              </div>
               <div class="col-md-2">
-                {% if current_state %}
+                {% if current_state or search_query %}
                 <a href="{% url 'contract_list' %}" class="btn btn-outline-secondary">
-                  <i class="fas fa-times me-1"></i>Clear Filter
+                  <i class="fas fa-times me-1"></i>Clear Filters
                 </a>
                 {% endif %}
               </div>
@@ -178,6 +188,50 @@
               </tbody>
             </table>
           </div>
+          <!-- Pagination -->
+          {% if contracts.paginator.num_pages > 1 %}
+          <div class="d-flex justify-content-center mt-4">
+            <nav aria-label="Contract pagination">
+              <ul class="pagination">
+                {% if contracts.has_previous %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page=1{% if current_state %}&state={{ current_state }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="First">
+                      <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                  </li>
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ contracts.previous_page_number }}{% if current_state %}&state={{ current_state }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                    </a>
+                  </li>
+                {% endif %}
+
+                {% for num in contracts.paginator.page_range %}
+                  {% if contracts.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                  {% elif num > contracts.number|add:'-3' and num < contracts.number|add:'3' %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ num }}{% if current_state %}&state={{ current_state }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+
+                {% if contracts.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ contracts.next_page_number }}{% if current_state %}&state={{ current_state }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                    </a>
+                  </li>
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ contracts.paginator.num_pages }}{% if current_state %}&state={{ current_state }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Last">
+                      <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>

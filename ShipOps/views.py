@@ -28,17 +28,31 @@ def contract_list(request):
     View to display a list of all contracts.
 
     Retrieves all Contract objects from the database, with optional filtering 
-    by state, and passes them to the 'contract_list.html' template.
+    by state and search terms, and passes them to the 'contract_list.html' template.
     Also initializes a blank ContractForm for adding a new contract.
 
     :param request: The HTTP request object.
     :return: Rendered 'contract_list.html' template with contract data and form.
     """
-    # Get state filter from query params
+    # Get state filter and search query from query params
     state_filter = request.GET.get('state')
+    search_query = request.GET.get('search', '').strip()
     
     # Get all contracts ordered by most recent first
     contracts = Contract.objects.all().order_by('-created_at')
+    
+    # Apply search filter if provided
+    if search_query:
+        contracts = contracts.filter(
+            Q(contract_number__icontains=search_query) |
+            Q(charterer__icontains=search_query) |
+            Q(vessel__icontains=search_query) |
+            Q(contract_type__icontains=search_query) |
+            Q(cargo__icontains=search_query) |
+            Q(load_port__icontains=search_query) |
+            Q(discharge_port__icontains=search_query) |
+            Q(owner__icontains=search_query)
+        )
     
     # Apply state filter if provided
     if state_filter and state_filter.isdigit():
@@ -54,12 +68,26 @@ def contract_list(request):
     # Initialize an empty contract form
     form = ContractForm()
     
+    # Add pagination - 10 contracts per page
+    paginator = Paginator(contracts, 10)
+    page = request.GET.get('page')
+    
+    try:
+        contracts_page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        contracts_page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page of results
+        contracts_page = paginator.page(paginator.num_pages)
+    
     # Prepare context dictionary for template rendering
     context = {
-        'contracts': contracts,
+        'contracts': contracts_page,  # Now using paginated contracts
         'form': form,
         'contract_states': contract_states,
         'current_state': state_filter,
+        'search_query': search_query,
         'page_title': 'Contract Management'
     }
     
@@ -70,19 +98,83 @@ def contract_list(request):
 def invoice_list(request):
     """
     View to display a list of all invoices.
-
-    Retrieves all Invoice objects from the database and passes them to the 'invoice_list.html' template.
-
+    
+    Retrieves all invoices from the database with optional filtering and search,
+    and displays them in a paginated list view.
+    
     :param request: The HTTP request object.
-    :return: Rendered 'invoice_list.html' template with invoice data.
+    :return: Rendered 'invoice_list.html' template with all invoices.
     """
-    # Get all invoices
+    # Check if user is from finance department
+    if not (request.user.ops_profile.is_finance or request.user.is_staff):
+        messages.error(request, 'Access denied. Only finance department users can view invoices.')
+        return redirect('home')  # Redirect to home or another appropriate page
+    
+    # Get search query and status filter from query params
+    search_query = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status')
+    
+    # Get all invoices ordered by most recent first
     invoices = Invoice.objects.all().order_by('-created_at')
     
-    # Prepare context dictionary for template rendering
+    # Get summary statistics
+    total_invoices = invoices.count()
+    # Using integer status values (assuming these are the correct values from your model)
+    paid_invoices = invoices.filter(status=2)  # Paid status
+    pending_invoices = invoices.filter(status=0)  # Pending status
+    overdue_invoices = invoices.filter(status=1)  # Overdue status
+    
+    # Calculate total amounts
+    total_paid_usd = paid_invoices.aggregate(total=models.Sum('price_usd'))['total'] or 0
+    total_pending_usd = pending_invoices.aggregate(total=models.Sum('price_usd'))['total'] or 0
+    total_overdue_usd = overdue_invoices.aggregate(total=models.Sum('price_usd'))['total'] or 0
+    
+    # Apply search filter if provided
+    if search_query:
+        invoices = invoices.filter(
+            Q(id__icontains=search_query) |
+            Q(contract__contract_number__icontains=search_query) |
+            Q(contract__vessel__icontains=search_query) |
+            Q(contract__charterer__icontains=search_query) |
+            Q(notes__icontains=search_query) |
+            Q(price_usd__icontains=search_query) |
+            Q(aed_price__icontains=search_query)
+        )
+    
+    # Apply status filter if provided
+    if status_filter and status_filter.isdigit():
+        invoices = invoices.filter(status=int(status_filter))
+    
+    # Add pagination - 10 invoices per page
+    paginator = Paginator(invoices, 10)
+    page = request.GET.get('page')
+    
+    try:
+        invoices_page = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page
+        invoices_page = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range, deliver last page of results
+        invoices_page = paginator.page(paginator.num_pages)
+    
+    # Get invoice statuses for the filter dropdown
+    invoice_statuses = Invoice._meta.get_field('status').choices
+    
     context = {
-        'invoices': invoices,
-        'page_title': 'Invoice Management'
+        'invoices': invoices_page,
+        'invoice_statuses': invoice_statuses,
+        'current_status': status_filter,
+        'search_query': search_query,
+        'page_title': 'Invoice List',
+        # Summary statistics
+        'total_invoices': total_invoices,
+        'paid_invoices_count': paid_invoices.count(),
+        'pending_invoices_count': pending_invoices.count(),
+        'overdue_invoices_count': overdue_invoices.count(),
+        'total_paid_usd': total_paid_usd,
+        'total_pending_usd': total_pending_usd,
+        'total_overdue_usd': total_overdue_usd
     }
     
     return render(request, 'ShipOps/invoice_list.html', context)
@@ -261,39 +353,6 @@ def contract_detail(request, contract_id):
     }
     
     return render(request, 'ShipOps/contract_detail.html', context)
-
-@login_required
-def invoice_list(request):
-    """
-    View to display a list of all invoices.
-    
-    Retrieves all invoices from the database and displays them in a list view.
-    
-    :param request: The HTTP request object.
-    :return: Rendered 'invoice_list.html' template with all invoices.
-    """
-    # Check if user is from finance department
-    if not (request.user.ops_profile.is_finance or request.user.is_staff):
-        messages.error(request, 'Access denied. Only finance department users can view invoices.')
-        return redirect('home')  # Redirect to home or another appropriate page
-    
-    # Get user's profile to check permissions
-    
-    # Only show contracts with state TO_FIN (state=1)
-    contracts = Contract.objects.filter(state=1)  # Assuming 1 represents TO_FIN state
-    
-    # Order contracts by most recent first
-    contracts = contracts.order_by('-created_at')
-    invoices = Invoice.objects.all()
-    form = InvoiceForm()
-    context = {
-        'invoices': invoices,
-        'form': form,
-        'page_title': 'Invoice List'
-    }
-    
-    return render(request, 'ShipOps/invoice_list.html', context)
-
 
 @login_required
 def invoice_edit(request, invoice_id):
